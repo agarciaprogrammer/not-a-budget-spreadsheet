@@ -11,7 +11,12 @@ export async function POST(request: NextRequest) {
     error: userError,
   } = await supabase.auth.getUser()
 
+  console.log('[API/profile] user:', user)
+  console.log('[API/profile] userError:', userError)
+  console.log('[API/profile] username:', username, 'email:', email)
+
   if (userError || !user) {
+    console.error('[API/profile] Unauthorized:', userError)
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -23,6 +28,7 @@ export async function POST(request: NextRequest) {
     .single()
 
   if (existingUser) {
+    console.error('[API/profile] Username already taken:', username)
     return NextResponse.json({ error: 'Username is already taken' }, { status: 409 })
   }
 
@@ -37,8 +43,10 @@ export async function POST(request: NextRequest) {
     })
 
   if (profileError) {
+    console.error('[API/profile] Profile insert error:', profileError)
     return NextResponse.json({ error: profileError.message }, { status: 400 })
   }
 
+  console.log('[API/profile] Profile created successfully for user:', user.id)
   return NextResponse.json({ success: true })
 }

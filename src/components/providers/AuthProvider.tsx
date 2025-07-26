@@ -48,17 +48,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       // Only allow login with username
       console.log('[Auth] Attempting login with username:', identifier)
-      const { data: userByName, error: lookupError } = await supabase
+      let email = null
+      let userByName = null
+      let lookupError = null
+      // Buscar por username en profiles
+      const lookup = await supabase
         .from('profiles')
         .select('email')
         .eq('username', identifier)
         .single()
+      userByName = lookup.data
+      lookupError = lookup.error
       if (lookupError || !userByName?.email) {
-        setError('Username not found')
-        throw new Error('Username not found')
+        // Si no existe en profiles, intentamos login usando el identificador como email
+        email = identifier
+      } else {
+        email = userByName.email
       }
-      const email = userByName.email
-      console.log('[Auth] Found username, using email:', email)
+      console.log('[Auth] Found email for login:', email)
       const { error: loginError } = await supabase.auth.signInWithPassword({ email, password })
       if (loginError) {
         console.error('[Auth] Login error:', loginError.message)
@@ -83,6 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username: identifier, email }),
+            credentials: 'include',
           })
           if (!res.ok) {
             const data = await res.json().catch(() => ({}))
@@ -90,6 +98,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setError(msg)
             throw new Error(msg)
           }
+        }
+
+        // Setup budget if user doesn't have one
+        const budgetRes = await fetch('/api/budget/setup', {
+          method: 'POST',
+          credentials: 'include',
+        })
+        
+        if (!budgetRes.ok) {
+          console.warn('[Auth] Budget setup failed:', await budgetRes.text())
+        } else {
+          console.log('[Auth] Budget setup completed')
         }
       }
       setError(null)
@@ -108,22 +128,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(true)
     setError(null)
     try {
-      // Create auth user with email
-      const { error: authError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-          data: { username },
-        },
+      // Usar el endpoint del servidor para signup
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, email, password }),
       })
-      if (authError) {
-        setError(authError.message || 'Sign up failed')
-        throw authError
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        setError(data.error || 'Sign up failed')
+        throw new Error(data.error || 'Sign up failed')
       }
+
       setError(null)
-      // Only show verification message, profile will be created after login
-      return true
+      return true // Indica que se debe mostrar mensaje de verificación
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : 'Sign up failed'
+      setError(errorMsg)
+      throw err
     } finally {
       setLoading(false)
     }
@@ -133,8 +157,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!supabase) throw new Error('Supabase client not initialized')
     setLoading(true)
     try {
-      const { error } = await supabase.auth.signOut()
-      if (error) throw error
+      // Usar el endpoint del servidor para logout
+      const res = await fetch('/api/auth/logout', {
+        method: 'POST',
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Logout failed')
+      }
+
+      router.push('/auth')
+    } catch (error) {
+      console.error('Logout error:', error)
+      // Fallback: intentar logout directo si falla el endpoint
+      const { error: supabaseError } = await supabase.auth.signOut()
+      if (supabaseError) {
+        console.error('Fallback logout error:', supabaseError)
+      }
       router.push('/auth')
     } finally {
       setLoading(false)

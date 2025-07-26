@@ -23,7 +23,7 @@ export const createServerSupabaseClient = async () => {
           const cookieStore = await cookies()
           cookieStore.set({ name, value, ...options })
         },
-        remove: async (name: string, options: CookieOptions) => {
+        remove: async (name: string) => {
           const cookieStore = await cookies()
           cookieStore.delete(name)
         }

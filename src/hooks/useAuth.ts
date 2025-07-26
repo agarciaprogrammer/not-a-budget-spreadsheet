@@ -7,7 +7,7 @@ export const useAuth = () => {
 
   const signIn = async (identifier: string, password: string) => {
     // Try username first
-    const { data: userByName, error: userError } = await supabase
+    const { data: userByName } = await supabase
       .from('profiles')
       .select('email')
       .eq('username', identifier)

@@ -46,16 +46,11 @@ export default function AddTransactionModal({
 
       if (error) throw error
 
-      // Agregar categoría "Other" por defecto si no existe
-      const defaultCategories = [
-        { id: 'other', name: 'Other' },
-        ...(data || [])
-      ]
-      setCategories(defaultCategories)
+      setCategories(data || [])
       
-      // Establecer "Other" como categoría por defecto
-      if (!formData.category_id) {
-        setFormData(prev => ({ ...prev, category_id: 'other' }))
+      // Establecer la primera categoría como seleccionada por defecto si existe
+      if (data && data.length > 0 && !formData.category_id) {
+        setFormData(prev => ({ ...prev, category_id: data[0].id }))
       }
     } catch (error) {
       console.error('Error loading categories:', error)
@@ -221,6 +216,7 @@ export default function AddTransactionModal({
               className="w-full px-3 py-2 border border-gray-300 text-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             >
+              <option value="">Select a category</option>
               {categories.map((category) => (
                 <option key={category.id} value={category.id}>
                   {category.name}

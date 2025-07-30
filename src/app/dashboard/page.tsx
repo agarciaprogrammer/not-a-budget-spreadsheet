@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/providers/AuthProvider'
 import AddTransactionModal from '@/components/transactions/AddTransactionModal'
 import TransactionTable from '@/components/transactions/TransactionTable'
+import SummaryCards from '@/components/dashboard/SummaryCards'
 
 export default function DashboardPage() {
   const { user, loading } = useAuth()
@@ -11,116 +12,113 @@ export default function DashboardPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
 
+  // Fetches the username from API based on the logged-in user
   useEffect(() => {
     async function fetchUsername() {
-      if (user) {
-        const res = await fetch(`/api/profile?userId=${user.id}`)
-        if (res.ok) {
-          const data = await res.json()
-          setUsername(data.username)
-        }
+      if (!user) return
+
+      try {
+        const response = await fetch(`/api/profile?userId=${user.id}`)
+        if (!response.ok) return
+
+        const { username } = await response.json()
+        setUsername(username)
+      } catch (error) {
+        console.error('Failed to fetch username:', error)
       }
     }
+
     fetchUsername()
   }, [user])
 
+  // Triggered when a new transaction is added to refresh summaries and table
   const handleTransactionAdded = () => {
     setRefreshTrigger(prev => prev + 1)
   }
 
+  // Renders loading state while auth is in progress
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <span className="text-gray-500 text-lg">Loading dashboard...</span>
-      </div>
+      <CenteredMessage message="Loading dashboard..." color="text-gray-500" />
     )
   }
 
+  // Renders fallback UI for unauthenticated access
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <span className="text-red-500 text-lg">You must be logged in to view the dashboard.</span>
-      </div>
+      <CenteredMessage message="You must be logged in to view the dashboard." color="text-red-500" />
     )
   }
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
-            Welcome{username ? `, ${username}` : ''}!
-          </h1>
-          <p className="text-gray-600 mt-2">
-            Manage your budget and track your transactions
-          </p>
-        </div>
+        <DashboardHeader username={username} />
 
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <span className="text-2xl">💰</span>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Income</p>
-                <p className="text-2xl font-semibold text-gray-900">$0.00</p>
-              </div>
-            </div>
-          </div>
+        <SummaryCards refreshTrigger={refreshTrigger} />
 
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-red-100 rounded-lg">
-                <span className="text-2xl">💸</span>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Expenses</p>
-                <p className="text-2xl font-semibold text-gray-900">$0.00</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <span className="text-2xl">📊</span>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Balance</p>
-                <p className="text-2xl font-semibold text-gray-900">$0.00</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Transactions Section */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-semibold text-gray-900">Recent Transactions</h2>
-              <button
-                onClick={() => setIsModalOpen(true)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-              >
-                + Add Transaction
-              </button>
-            </div>
-          </div>
-          <div className="p-6">
-            <TransactionTable refreshTrigger={refreshTrigger} />
-          </div>
-        </div>
+        <TransactionsPanel
+          onOpenModal={() => setIsModalOpen(true)}
+          refreshTrigger={refreshTrigger}
+        />
       </div>
 
-      {/* Add Transaction Modal */}
       <AddTransactionModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onTransactionAdded={handleTransactionAdded}
       />
+    </div>
+  )
+}
+
+/** Extracted reusable component for header display */
+function DashboardHeader({ username }: { username: string | null }) {
+  return (
+    <div className="mb-8">
+      <h1 className="text-3xl font-bold text-gray-900">
+        Welcome{username ? `, ${username}` : ''}!
+      </h1>
+      <p className="text-gray-600 mt-2">
+        Manage your budget and track your transactions
+      </p>
+    </div>
+  )
+}
+
+/** Displays the transaction list section */
+function TransactionsPanel({
+  onOpenModal,
+  refreshTrigger,
+}: {
+  onOpenModal: () => void
+  refreshTrigger: number
+}) {
+  return (
+    <div className="bg-white rounded-lg shadow">
+      <div className="px-6 py-4 border-b border-gray-200">
+        <div className="flex justify-between items-center">
+          <h2 className="text-xl font-semibold text-gray-900">Recent Transactions</h2>
+          <button
+            onClick={onOpenModal}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+          >
+            + Add Transaction
+          </button>
+        </div>
+      </div>
+      <div className="p-6">
+        <TransactionTable refreshTrigger={refreshTrigger} />
+      </div>
+    </div>
+  )
+}
+
+/** Displays a centered message for loading or error states */
+function CenteredMessage({ message, color }: { message: string; color: string }) {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <span className={`${color} text-lg`}>{message}</span>
     </div>
   )
 }

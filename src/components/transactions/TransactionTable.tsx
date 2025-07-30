@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/providers/AuthProvider'
+import { useDashboardDate } from '@/components/providers/DashboardDateProvider'
 import { transactionService, type Transaction } from '@/lib/services/transaction.service'
 import { LoadingState } from '@/components/ui/LoadingState'
 import { ErrorAlert } from '@/components/ui/ErrorState'
@@ -12,10 +13,12 @@ import { formatCurrency, formatDate } from '@/lib/utils/formatters'
 interface TransactionTableProps {
   refreshTrigger: number
   onAddTransaction: () => void
+  onRefresh?: () => void
 }
 
-export default function TransactionTable({ refreshTrigger, onAddTransaction }: TransactionTableProps) {
+export default function TransactionTable({ refreshTrigger, onAddTransaction, onRefresh }: TransactionTableProps) {
   const { user } = useAuth()
+  const { monthRange } = useDashboardDate()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -27,7 +30,10 @@ export default function TransactionTable({ refreshTrigger, onAddTransaction }: T
     setError(null)
 
     try {
-      const transactions = await transactionService.getUserTransactions(user.id)
+      const transactions = await transactionService.getUserTransactions(user.id, undefined, {
+        startDate: monthRange.startDate,
+        endDate: monthRange.endDate
+      })
       setTransactions(transactions)
     } catch (error) {
       console.error('Error loading transactions:', error)
@@ -35,7 +41,7 @@ export default function TransactionTable({ refreshTrigger, onAddTransaction }: T
     } finally {
       setLoading(false)
     }
-  }, [user])
+  }, [user, monthRange])
 
   useEffect(() => {
     if (user) {
@@ -50,7 +56,10 @@ export default function TransactionTable({ refreshTrigger, onAddTransaction }: T
 
     try {
       await transactionService.deleteTransaction(transactionId, user.id)
-      loadTransactions() // Recargar transacciones después de eliminar
+      // Trigger refresh instead of calling loadTransactions directly
+      if (onRefresh) {
+        onRefresh()
+      }
     } catch (error) {
       console.error('Error deleting transaction:', error)
       alert('Error deleting transaction')

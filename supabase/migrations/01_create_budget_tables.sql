@@ -31,7 +31,7 @@ create table public.transactions (
   category_id uuid references public.categories(id) on delete cascade not null,
   type text check (type in ('income', 'expense')) not null,
   amount numeric(10,2) not null check (amount > 0),
-  date timestamp with time zone not null,
+  date date not null,
   description text,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );

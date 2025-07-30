@@ -39,7 +39,7 @@ export function useAuthentication(): AuthState & AuthActions {
             loading: false,
           }))
         }
-      } catch (error) {
+      } catch {
         if (mounted) {
           setState(prev => ({
             ...prev,

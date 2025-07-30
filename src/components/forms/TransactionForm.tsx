@@ -6,6 +6,7 @@ import { Select, type SelectOption } from '@/components/ui/Select'
 import { Button } from '@/components/ui/Button'
 import { transactionService, type Category } from '@/lib/services/transaction.service'
 import { useAuth } from '@/components/providers/AuthProvider'
+import { formatDateToYYYYMMDD } from '@/lib/utils/date-utils'
 
 export interface TransactionFormData {
   type: 'income' | 'expense'
@@ -33,7 +34,7 @@ export function TransactionForm({
   const [formData, setFormData] = useState<TransactionFormData>({
     type: 'expense',
     amount: 0,
-    date: new Date().toISOString().split('T')[0],
+    date: formatDateToYYYYMMDD(new Date()),
     category_id: '',
     description: '',
     ...initialData
@@ -130,16 +131,13 @@ export function TransactionForm({
         </div>
       </div>
 
-      {/* Monto */}
+      {/* Descripción */}
       <Input
-        label="Amount"
-        type="number"
-        step="0.01"
-        min="0"
-        value={formData.amount || ''}
-        onChange={(e) => setFormData(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
-        error={errors.amount}
-        required
+        label="Description"
+        type="text"
+        value={formData.description || ''}
+        onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+        placeholder="Ej: Food, Transport, etc."
       />
 
       {/* Fecha */}
@@ -163,13 +161,16 @@ export function TransactionForm({
         required
       />
 
-      {/* Descripción */}
+      {/* Monto */}
       <Input
-        label="Description (optional)"
-        type="text"
-        value={formData.description || ''}
-        onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-        placeholder="Ej: Food, Transport, etc."
+        label="Amount"
+        type="number"
+        step="0.01"
+        min="0"
+        value={formData.amount || ''}
+        onChange={(e) => setFormData(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
+        error={errors.amount}
+        required
       />
 
       {/* Botones */}

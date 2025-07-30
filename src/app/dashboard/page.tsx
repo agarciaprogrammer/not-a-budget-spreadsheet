@@ -10,6 +10,11 @@ import { Button } from '@/components/ui/Button'
 import AddTransactionModal from '@/components/transactions/AddTransactionModal'
 import TransactionTable from '@/components/transactions/TransactionTable'
 import SummaryCards from '@/components/dashboard/SummaryCards'
+import CategoryPieChart from '@/components/dashboard/CategoryPieChart'
+import IncomeExpenseLineChart from '@/components/dashboard/IncomeExpenseLineChart'
+import SpendingByDayChart from '@/components/dashboard/SpendingByDayChart'
+import { DashboardDateProvider } from '@/components/providers/DashboardDateProvider'
+import MonthSelector from '@/components/dashboard/MonthSelector'
 
 export default function DashboardPage() {
   const { user, loading, error } = useAuth()
@@ -54,21 +59,32 @@ export default function DashboardPage() {
   }
 
   return (
-    <PageContainer>
-      <DashboardHeader />
-      <SummaryCards refreshTrigger={refreshTrigger} />
-      <TransactionsPanel
-        onOpenModal={handleOpenModal}
-        refreshTrigger={refreshTrigger}
-        onAddTransaction={handleOpenModal}
-      />
+    <DashboardDateProvider>
+      <PageContainer>
+        <DashboardHeader />
+        <MonthSelector />
+        <SummaryCards refreshTrigger={refreshTrigger} />
 
-      <AddTransactionModal
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        onTransactionAdded={handleTransactionAdded}
-      />
-    </PageContainer>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 my-8">
+          <CategoryPieChart refreshTrigger={refreshTrigger} />
+          <IncomeExpenseLineChart refreshTrigger={refreshTrigger} />
+          <SpendingByDayChart refreshTrigger={refreshTrigger} />
+        </div>
+        
+        <TransactionsPanel
+          onOpenModal={handleOpenModal}
+          refreshTrigger={refreshTrigger}
+          onAddTransaction={handleOpenModal}
+          onRefresh={handleTransactionAdded}
+        />
+
+        <AddTransactionModal
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          onTransactionAdded={handleTransactionAdded}
+        />
+      </PageContainer>
+    </DashboardDateProvider>
   )
 }
 
@@ -89,10 +105,12 @@ function TransactionsPanel({
   onOpenModal,
   refreshTrigger,
   onAddTransaction,
+  onRefresh,
 }: {
   onOpenModal: () => void
   refreshTrigger: number
   onAddTransaction: () => void
+  onRefresh: () => void
 }) {
   return (
     <Card>
@@ -108,6 +126,7 @@ function TransactionsPanel({
         <TransactionTable 
           refreshTrigger={refreshTrigger} 
           onAddTransaction={onAddTransaction}
+          onRefresh={onRefresh}
         />
       </CardContent>
     </Card>

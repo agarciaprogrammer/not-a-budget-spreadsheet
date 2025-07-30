@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/providers/AuthProvider'
+import { useDashboardDate } from '@/components/providers/DashboardDateProvider'
 import { transactionService } from '@/lib/services/transaction.service'
 
 export function useSummaryData(refreshTrigger: number) {
   const { user } = useAuth()
+  const { monthRange } = useDashboardDate()
   const [summaryData, setSummaryData] = useState({
     totalIncome: 0,
     totalExpenses: 0,
@@ -19,7 +21,10 @@ export function useSummaryData(refreshTrigger: number) {
     setError(null)
 
     try {
-      const data = await transactionService.getTransactionSummary(user.id)
+      const data = await transactionService.getTransactionSummary(user.id, {
+        startDate: monthRange.startDate,
+        endDate: monthRange.endDate
+      })
       setSummaryData(data)
     } catch (error) {
       console.error('Error loading summary data:', error)
@@ -27,7 +32,7 @@ export function useSummaryData(refreshTrigger: number) {
     } finally {
       setLoading(false)
     }
-  }, [user])
+  }, [user, monthRange])
 
   useEffect(() => {
     if (user) {

@@ -111,6 +111,4 @@ export const CURRENCY = {
 export const DATE = {
   LOCALE: 'es-ES',
   FORMAT: 'dd/MM/yyyy',
-  TIME_FORMAT: 'HH:mm',
-  DATETIME_FORMAT: 'dd/MM/yyyy HH:mm',
 } as const 

@@ -3,11 +3,11 @@ import { cn } from '@/lib/utils/cn'
 interface CardProps {
   children: React.ReactNode
   className?: string
-  padding?: 'none' | 'sm' | 'md' | 'lg'
+  padding?: 'none' | 'sm' | 'md' | 'lg' | 'smx'
   shadow?: 'none' | 'sm' | 'md' | 'lg'
 }
 
-export function Card({ 
+export function Card({  
   children, 
   className,
   padding = 'md',
@@ -17,7 +17,8 @@ export function Card({
     none: '',
     sm: 'p-4',
     md: 'p-6',
-    lg: 'p-8'
+    lg: 'p-8',
+    smx: 'py-1'
   }
 
   const shadows = {
@@ -29,7 +30,7 @@ export function Card({
 
   return (
     <div className={cn(
-      'bg-white rounded-lg border border-gray-200',
+      'bg-white rounded-lg border border-gray-200 shadow-sm',
       paddings[padding],
       shadows[shadow],
       className

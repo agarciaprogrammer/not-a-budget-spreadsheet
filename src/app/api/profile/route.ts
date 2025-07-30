@@ -1,52 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { profileService } from '@/lib/services/profile.service'
+import { handleError, successResponse } from '@/lib/utils/api-response'
 
 export async function POST(request: NextRequest) {
-  const supabase = await createServerSupabaseClient()
-  const { username, email } = await request.json()
+  try {
+    const { username, email } = await request.json()
 
-  // Get the current user
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser()
+    // Obtener el usuario actual
+    const userResult = await profileService.getCurrentUser()
+    if (!userResult.success) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
-  console.log('[API/profile] user:', user)
-  console.log('[API/profile] userError:', userError)
-  console.log('[API/profile] username:', username, 'email:', email)
+    // Verificar si el username ya está en uso
+    const usernameCheckResult = await profileService.isUsernameTaken(username)
+    if (usernameCheckResult.success && usernameCheckResult.data) {
+      return NextResponse.json({ error: 'Username is already taken' }, { status: 409 })
+    }
 
-  if (userError || !user) {
-    console.error('[API/profile] Unauthorized:', userError)
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  // Check if username is taken
-  const { data: existingUser } = await supabase
-    .from('profiles')
-    .select('username')
-    .eq('username', username)
-    .single()
-
-  if (existingUser) {
-    console.error('[API/profile] Username already taken:', username)
-    return NextResponse.json({ error: 'Username is already taken' }, { status: 409 })
-  }
-
-  // Insert profile
-  const { error: profileError } = await supabase
-    .from('profiles')
-    .insert({
-      id: user.id,
+    // Crear el perfil
+    const profileResult = await profileService.createProfile(userResult.data.id, {
       username,
       email,
-      created_at: new Date().toISOString(),
     })
 
-  if (profileError) {
-    console.error('[API/profile] Profile insert error:', profileError)
-    return NextResponse.json({ error: profileError.message }, { status: 400 })
-  }
+    if (!profileResult.success) {
+      return NextResponse.json({ error: profileResult.error.message }, { status: 500 })
+    }
 
-  console.log('[API/profile] Profile created successfully for user:', user.id)
-  return NextResponse.json({ success: true })
+    return successResponse({ success: true })
+  } catch (error) {
+    return handleError(error, 'Profile creation failed')
+  }
 }

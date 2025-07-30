@@ -1,4 +1,5 @@
 import { createBrowserSupabaseClient } from './client'
+import { budgetService } from '@/lib/services/budget.service'
 
 export interface SummaryData {
   totalIncome: number
@@ -9,15 +10,10 @@ export interface SummaryData {
 export async function getSummaryData(userId: string): Promise<SummaryData> {
   const supabase = createBrowserSupabaseClient()
 
-  // Obtener el budget_id del usuario
-  const { data: budgetUser, error: budgetError } = await supabase
-    .from('budget_users')
-    .select('budget_id')
-    .eq('user_id', userId)
-    .eq('role', 'owner')
-    .single()
+  // Usar el servicio de presupuesto en lugar de duplicar lógica
+  const budgetId = await budgetService.getUserBudgetId(userId)
 
-  if (budgetError || !budgetUser) {
+  if (!budgetId) {
     throw new Error('No budget found for user')
   }
 
@@ -28,7 +24,7 @@ export async function getSummaryData(userId: string): Promise<SummaryData> {
       type,
       amount
     `)
-    .eq('budget_id', budgetUser.budget_id)
+    .eq('budget_id', budgetId)
     .eq('user_id', userId)
 
   if (summaryError) throw summaryError

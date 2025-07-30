@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/providers/AuthProvider'
-import { getSummaryData, SummaryData } from '@/lib/supabase/queries'
+import { transactionService } from '@/lib/services/transaction.service'
 
 export function useSummaryData(refreshTrigger: number) {
   const { user } = useAuth()
-  const [summaryData, setSummaryData] = useState<SummaryData>({
+  const [summaryData, setSummaryData] = useState({
     totalIncome: 0,
     totalExpenses: 0,
     netBalance: 0
@@ -12,14 +12,14 @@ export function useSummaryData(refreshTrigger: number) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const loadSummaryData = async () => {
+  const loadSummaryData = useCallback(async () => {
     if (!user) return
 
     setLoading(true)
     setError(null)
 
     try {
-      const data = await getSummaryData(user.id)
+      const data = await transactionService.getTransactionSummary(user.id)
       setSummaryData(data)
     } catch (error) {
       console.error('Error loading summary data:', error)
@@ -27,18 +27,13 @@ export function useSummaryData(refreshTrigger: number) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [user])
 
   useEffect(() => {
     if (user) {
       loadSummaryData()
     }
-  }, [user, refreshTrigger])
+  }, [user, refreshTrigger, loadSummaryData])
 
-  return {
-    summaryData,
-    loading,
-    error,
-    refetch: loadSummaryData
-  }
+  return { summaryData, loading, error }
 } 

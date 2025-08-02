@@ -16,6 +16,13 @@ const CATEGORY_COLORS = [
   '#6366F1', // indigo-500
 ]
 
+// Define a proper type for transactions with joined categories
+interface TransactionWithCategoryRow {
+  amount: string | number
+  category_id: string
+  category: { name: string } | null
+}
+
 export interface Transaction {
   id: string
   budget_id: string
@@ -26,24 +33,14 @@ export interface Transaction {
   date: string
   description: string | null
   created_at: string
-  categories?: { // Added for join results
-    name: string
-  }
+  // categories returns as an array from Supabase join
+  categories?: { name: string }[]
 }
 
 export interface Category {
   id: string
   name: string
 }
-
-interface CategoryTransaction {
-  amount: number
-  category_id: string
-  categories: {
-    name: string
-  }[]
-}
-
 export class TransactionService {
   private getSupabaseClient() {
     if (typeof window === 'undefined') {
@@ -218,13 +215,12 @@ export class TransactionService {
     }
   }
 
-  async getCategoryBreakdown(userId: string, dateRange?: { startDate: string; endDate: string }): Promise<{
-    categories: Array<{
-      name: string
-      value: number
-      percentage: number
-      color: string
-    }>
+
+  async getCategoryBreakdown(
+    userId: string,
+    dateRange?: { startDate: string; endDate: string }
+  ): Promise<{
+    categories: Array<{ name: string; value: number; percentage: number; color: string }>
     totalAmount: number
     topCategoriesCount: number
   }> {
@@ -232,20 +228,24 @@ export class TransactionService {
     if (!budgetId) {
       return { categories: [], totalAmount: 0, topCategoriesCount: 0 }
     }
-
+  
     const supabase = this.getSupabaseClient()
-    
-    // Use provided date range or default to current month
-    const startDate = dateRange?.startDate || formatDateToYYYYMMDD(new Date(new Date().getFullYear(), new Date().getMonth(), 1))
-    const endDate = dateRange?.endDate || formatDateToYYYYMMDD(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0))
-
-    // Fetch expenses grouped by category for specified period
-    const { data: categoryData, error } = await supabase
+  
+    // Determine date range
+    const startDate =
+      dateRange?.startDate ||
+      formatDateToYYYYMMDD(new Date(new Date().getFullYear(), new Date().getMonth(), 1))
+    const endDate =
+      dateRange?.endDate ||
+      formatDateToYYYYMMDD(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0))
+  
+    // Fetch expenses with aliased category join (no generics on select)
+    const { data, error } = await supabase
       .from('transactions')
       .select(`
         amount,
         category_id,
-        categories!inner (
+        category:categories (
           name
         )
       `)
@@ -254,47 +254,52 @@ export class TransactionService {
       .eq('type', 'expense')
       .gte('date', startDate)
       .lte('date', endDate)
-
+  
     if (error) throw error
-
+  
+    // Cast data to the correct type array
+    const categoryData = (data as unknown as TransactionWithCategoryRow[]) || []
+  
     // Group and sum by category
     const categoryTotals = new Map<string, number>()
     let totalAmount = 0
-
-    categoryData?.forEach((transaction: CategoryTransaction) => {
-      const categoryName = transaction.categories[0]?.name || 'Unknown'
-      const amount = Number(transaction.amount)
-      categoryTotals.set(categoryName, (categoryTotals.get(categoryName) || 0) + amount)
+  
+    categoryData.forEach((tx: TransactionWithCategoryRow) => {
+      const categoryName = tx.category?.name ?? 'Unknown'
+      const amount = Number(tx.amount)
+      categoryTotals.set(
+        categoryName,
+        (categoryTotals.get(categoryName) || 0) + amount
+      )
       totalAmount += amount
     })
-
-    // Convert to array and sort by amount (descending)
+  
+    // Convert to array and sort
     const sortedCategories = Array.from(categoryTotals.entries())
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value)
-
-    // Take top 5 categories and group the rest as "Other"
+  
+    // Top 5 + "Other"
     const topCategories = sortedCategories.slice(0, 5)
     const otherCategories = sortedCategories.slice(5)
-    
+  
     const categories = topCategories.map((category, index) => ({
       name: category.name,
       value: category.value,
       percentage: totalAmount > 0 ? (category.value / totalAmount) * 100 : 0,
       color: CATEGORY_COLORS[index] || CATEGORY_COLORS[0]
     }))
-
-    // Add "Other" category if there are remaining categories
+  
     if (otherCategories.length > 0) {
       const otherTotal = otherCategories.reduce((sum, cat) => sum + cat.value, 0)
       categories.push({
         name: 'Other',
         value: otherTotal,
         percentage: totalAmount > 0 ? (otherTotal / totalAmount) * 100 : 0,
-        color: CATEGORY_COLORS[5] || '#6B7280' // gray-500
+        color: CATEGORY_COLORS[5] || '#6B7280'
       })
     }
-
+  
     return {
       categories,
       totalAmount,
@@ -415,6 +420,54 @@ export class TransactionService {
     }
   
     return sevenDaysData
+  }
+
+  async getWeeklySpending(userId: string, dateRange: { startDate: string; endDate: string }): Promise<Array<{
+    week_start: string
+    total_spent: number
+  }>> {
+    const budgetId = await budgetService.getUserBudgetId(userId)
+    if (!budgetId) return []
+  
+    const supabase = this.getSupabaseClient()
+  
+    // Fetch all expenses in the date range
+    const { data: transactions, error } = await supabase
+      .from('transactions')
+      .select('amount, date')
+      .eq('budget_id', budgetId)
+      .eq('user_id', userId)
+      .eq('type', 'expense')
+      .gte('date', dateRange.startDate)
+      .lte('date', dateRange.endDate)
+  
+    if (error) throw error
+  
+    // Group by week and calculate totals
+    const weeklyTotals = new Map<string, number>()
+    
+    transactions?.forEach(transaction => {
+      // Parse the date and get the start of the week (Sunday)
+      const [year, month, day] = transaction.date.split('-').map(Number)
+      const date = new Date(year, month - 1, day) // month is 0-indexed
+      const dayOfWeek = date.getDay()
+      
+      // Calculate start of week (Sunday)
+      const weekStart = new Date(date)
+      weekStart.setDate(date.getDate() - dayOfWeek)
+      
+      const weekKey = formatDateToYYYYMMDD(weekStart)
+      const currentTotal = weeklyTotals.get(weekKey) || 0
+      weeklyTotals.set(weekKey, currentTotal + Number(transaction.amount))
+    })
+  
+    // Convert to array and sort by week start date
+    return Array.from(weeklyTotals.entries())
+      .map(([week_start, total_spent]) => ({
+        week_start,
+        total_spent
+      }))
+      .sort((a, b) => a.week_start.localeCompare(b.week_start))
   }
 }
 

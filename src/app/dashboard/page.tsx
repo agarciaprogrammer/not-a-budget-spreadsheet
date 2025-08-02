@@ -12,7 +12,8 @@ import TransactionTable from '@/components/transactions/TransactionTable'
 import SummaryCards from '@/components/dashboard/SummaryCards'
 import CategoryPieChart from '@/components/dashboard/CategoryPieChart'
 import IncomeExpenseLineChart from '@/components/dashboard/IncomeExpenseLineChart'
-import SpendingByDayChart from '@/components/dashboard/SpendingByDayChart'
+import WeeklySpendingChart from '@/components/dashboard/WeeklySpendingChart'
+import MonthlyLimitCard from '@/components/dashboard/MonthlyLimitCard'
 import { DashboardDateProvider } from '@/components/providers/DashboardDateProvider'
 import MonthSelector from '@/components/dashboard/MonthSelector'
 
@@ -67,7 +68,12 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 my-8">
           <CategoryPieChart refreshTrigger={refreshTrigger} />
           <IncomeExpenseLineChart refreshTrigger={refreshTrigger} />
-          <SpendingByDayChart refreshTrigger={refreshTrigger} />
+          <WeeklySpendingChart refreshTrigger={refreshTrigger} />
+        </div>
+        
+        {/* Monthly Limit Card */}
+        <div className="my-8">
+          <MonthlyLimitCard userId={user.id} refreshTrigger={refreshTrigger} />
         </div>
         
         <TransactionsPanel

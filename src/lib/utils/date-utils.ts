@@ -87,4 +87,28 @@ export function isDateInMonthRange(date: Date | string, monthRange: MonthDateRan
     dateToCheck = new Date(date)
   }
   return dateToCheck >= monthRange.startOfMonth && dateToCheck <= monthRange.endOfMonth
+}
+
+/**
+ * Returns array of week intervals for current and previous 3 weeks
+ * @param referenceDate - Reference date (defaults to current date)
+ * @returns Array of week intervals with start and end dates
+ */
+export function getPastFourWeeksIntervals(referenceDate: Date = new Date()) {
+  const weeks = []
+  const current = new Date(referenceDate)
+
+  for (let i = 0; i < 4; i++) {
+    const start = new Date(current)
+    start.setDate(current.getDate() - current.getDay()) // Start of the week (Sunday)
+
+    const end = new Date(start)
+    end.setDate(start.getDate() + 6) // End of the week (Saturday)
+
+    weeks.push({ start, end })
+
+    current.setDate(current.getDate() - 7) // Move to previous week
+  }
+
+  return weeks.reverse() // From oldest to newest
 } 

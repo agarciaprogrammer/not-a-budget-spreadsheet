@@ -5,6 +5,16 @@ export interface Budget {
   name: string
   owner_id: string
   created_at: string
+  monthly_limit?: number | null
+}
+
+export interface MonthlyLimit {
+  id: string
+  budget_id: string
+  year: number
+  month: number
+  limit: number
+  created_at: string
 }
 
 export interface BudgetUser {
@@ -95,6 +105,60 @@ export class BudgetService {
       return null
     }
     return data.budget_id
+  }
+
+  async setMonthlyLimit(userId: string, limit: number, year?: number, month?: number): Promise<void> {
+    const supabase = this.getSupabaseClient()
+    const budgetId = await this.getUserBudgetId(userId)
+    if (!budgetId) {
+      throw new Error('No budget found for user')
+    }
+    
+    const currentDate = new Date()
+    const targetYear = year ?? currentDate.getFullYear()
+    const targetMonth = month ?? currentDate.getMonth() + 1 // getMonth() returns 0-11
+    
+          // Upsert the monthly limit for the specific month
+      const { error } = await supabase
+        .from('monthly_limits')
+        .upsert({
+          budget_id: budgetId,
+          year: targetYear,
+          month: targetMonth,
+          amount_limit: limit
+        }, {
+          onConflict: 'budget_id,year,month'
+        })
+    
+    if (error) {
+      throw error
+    }
+  }
+
+  async getMonthlyLimit(userId: string, year?: number, month?: number): Promise<number | null> {
+    const supabase = this.getSupabaseClient()
+    const budgetId = await this.getUserBudgetId(userId)
+    if (!budgetId) {
+      return null
+    }
+    
+    const currentDate = new Date()
+    const targetYear = year ?? currentDate.getFullYear()
+    const targetMonth = month ?? currentDate.getMonth() + 1 // getMonth() returns 0-11
+    
+    const { data, error } = await supabase
+      .from('monthly_limits')
+      .select('amount_limit')
+      .eq('budget_id', budgetId)
+      .eq('year', targetYear)
+      .eq('month', targetMonth)
+      .single()
+    
+    if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
+      throw error
+    }
+    
+    return data?.amount_limit ?? null
   }
 }
 

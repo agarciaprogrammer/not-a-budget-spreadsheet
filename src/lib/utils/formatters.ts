@@ -1,14 +1,12 @@
 /**
  * Formatea un número como moneda
  */
-export function formatCurrency(
-  amount: number,
-  currency: string = 'ARS',
-  locale: string = 'es-ES'
-): string {
-  return new Intl.NumberFormat(locale, {
+export function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat('es-AR', {
     style: 'currency',
-    currency,
+    currency: 'ARS',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(amount)
 }
 
@@ -59,12 +57,11 @@ export function formatPercentage(
 /**
  * Formatea un número con separadores de miles
  */
-export function formatNumber(
-  value: number,
-  locale: string = 'es-ES',
-  options: Intl.NumberFormatOptions = {}
-): string {
-  return new Intl.NumberFormat(locale, options).format(value)
+export function formatNumber(number: number): string {
+  return new Intl.NumberFormat('es-ES', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(number)
 }
 
 /**
@@ -137,4 +134,12 @@ export function toSlug(text: string): string {
     .replace(/[^\w\s-]/g, '')
     .replace(/[\s_-]+/g, '-')
     .replace(/^-+|-+$/g, '')
+} 
+
+export function getMonthName(month: number): string {
+  const months = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ]
+  return months[month - 1] // month is 1-12, array is 0-11
 } 

@@ -17,9 +17,9 @@ export default function MonthSelector() {
                         selectedMonth.getFullYear() === new Date().getFullYear()
   
   return (
-    <div className="flex items-center justify-between bg-white rounded-lg shadow p-4 mb-6">
+    <div className="flex items-center justify-between bg-white rounded-lg shadow p-6 mb-6">
       <div className="flex items-center gap-4">
-        <h2 className="text-lg font-semibold text-gray-900">Dashboard</h2>
+        <h2 className="text-xl font-bold text-gray-900">Dashboard</h2>
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"

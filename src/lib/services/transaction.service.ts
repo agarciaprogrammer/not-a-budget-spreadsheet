@@ -36,6 +36,14 @@ export interface Category {
   name: string
 }
 
+interface CategoryTransaction {
+  amount: number
+  category_id: string
+  categories: {
+    name: string
+  }[]
+}
+
 export class TransactionService {
   private getSupabaseClient() {
     if (typeof window === 'undefined') {
@@ -72,11 +80,31 @@ export class TransactionService {
     return data as Transaction
   }
 
-  async getUserTransactions(userId: string, limit?: number, dateRange?: { startDate: string; endDate: string }): Promise<Transaction[]> {
+  async getUserTransactions(
+    userId: string, 
+    options?: {
+      page?: number
+      pageSize?: number
+      dateRange?: { startDate: string; endDate: string }
+      categoryId?: string
+      type?: 'income' | 'expense'
+      search?: string
+    }
+  ): Promise<{ data: Transaction[]; total: number }> {
     const budgetId = await budgetService.getUserBudgetId(userId)
     if (!budgetId) {
-      return []
+      return { data: [], total: 0 }
     }
+
+    const {
+      page = 1,
+      pageSize = 10,
+      dateRange,
+      categoryId,
+      type,
+      search
+    } = options || {}
+
     const supabase = this.getSupabaseClient()
     let query = supabase
       .from('transactions')
@@ -93,23 +121,42 @@ export class TransactionService {
         categories!inner (
           name
         )
-      `)
+      `, { count: 'exact' })
       .eq('budget_id', budgetId)
       .eq('user_id', userId)
       .order('date', { ascending: false })
     
+    // Apply filters
     if (dateRange) {
       query = query
         .gte('date', dateRange.startDate)
         .lte('date', dateRange.endDate)
     }
-    
-    if (limit) {
-      query = query.limit(limit)
+
+    if (categoryId) {
+      query = query.eq('category_id', categoryId)
     }
-    const { data, error } = await query
+
+    if (type) {
+      query = query.eq('type', type)
+    }
+
+    if (search) {
+      query = query.ilike('description', `%${search}%`)
+    }
+
+    // Calculate pagination range
+    const from = (page - 1) * pageSize
+    const to = from + pageSize - 1
+
+    const { data, count, error } = await query.range(from, to)
+    
     if (error) throw error
-    return data as unknown as Transaction[]
+    
+    return {
+      data: data as unknown as Transaction[],
+      total: count ?? 0
+    }
   }
 
   async deleteTransaction(transactionId: string, userId: string): Promise<void> {
@@ -197,6 +244,7 @@ export class TransactionService {
       .from('transactions')
       .select(`
         amount,
+        category_id,
         categories!inner (
           name
         )
@@ -213,7 +261,7 @@ export class TransactionService {
     const categoryTotals = new Map<string, number>()
     let totalAmount = 0
 
-    categoryData?.forEach((transaction: { amount: number; categories: { name: string }[] }) => {
+    categoryData?.forEach((transaction: CategoryTransaction) => {
       const categoryName = transaction.categories[0]?.name || 'Unknown'
       const amount = Number(transaction.amount)
       categoryTotals.set(categoryName, (categoryTotals.get(categoryName) || 0) + amount)

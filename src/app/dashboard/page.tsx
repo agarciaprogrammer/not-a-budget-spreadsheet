@@ -61,7 +61,6 @@ export default function DashboardPage() {
   return (
     <DashboardDateProvider>
       <PageContainer>
-        <DashboardHeader />
         <MonthSelector />
         <SummaryCards refreshTrigger={refreshTrigger} />
 
@@ -85,19 +84,6 @@ export default function DashboardPage() {
         />
       </PageContainer>
     </DashboardDateProvider>
-  )
-}
-
-function DashboardHeader() {
-  return (
-    <div className="mb-8">
-      <h1 className="text-3xl font-bold text-gray-900">
-        Welcome!
-      </h1>
-      <p className="text-gray-600 mt-2">
-        Manage your budget and track your transactions
-      </p>
-    </div>
   )
 }
 

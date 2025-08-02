@@ -9,6 +9,9 @@ export { LoadingState, LoadingSpinner } from './LoadingState'
 export { ErrorState, ErrorAlert } from './ErrorState'
 export { EmptyState, EmptyTransactions } from './EmptyState'
 
+// Navigation
+export { Pagination } from './Pagination'
+
 // Layout
 export { PageContainer } from '../layout/PageContainer'
 export { Card, CardHeader, CardContent } from '../layout/Card'

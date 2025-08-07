@@ -164,10 +164,15 @@ export function useAuthentication(): AuthState & AuthActions {
       const result = await authService.signOut()
       if (!result.success) {
         console.error('Logout error:', result.error.message)
+        // Aún así, limpiar el estado local y redirigir
+        setState(prev => ({ ...prev, user: null, loading: false }))
       }
+      // Siempre redirigir a /auth, sin importar si el logout fue exitoso
       router.push('/auth')
     } catch (error) {
       console.error('Logout error:', error)
+      // Limpiar el estado local y redirigir
+      setState(prev => ({ ...prev, user: null, loading: false }))
       router.push('/auth')
     } finally {
       setState(prev => ({ ...prev, loading: false }))

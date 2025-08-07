@@ -27,6 +27,8 @@
     "create.account": "Crea tu cuenta",
     "sign.in": "Iniciar sesión",
     "sign.up": "Registrarse",
+    "signing.in": "Iniciando sesión...",
+    "signing.up": "Registrándose...",
     "no.account.signup": "¿No tienes cuenta? Regístrate",
     "have.account.signin": "¿Ya tienes cuenta? Inicia sesión",
     "username.placeholder": "Nombre de usuario",

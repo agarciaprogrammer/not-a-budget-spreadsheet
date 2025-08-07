@@ -1,5 +1,5 @@
 import type { User, Session } from '@supabase/supabase-js'
-import { Result, success, failure, tryAsync } from '@/lib/types/result'
+import { Result, tryAsync } from '@/lib/types/result'
 import { logger } from './logging.service'
 import { createBrowserSupabaseClient } from '@/lib/supabase/client'
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -169,32 +169,26 @@ export class AuthenticationService {
     return tryAsync(async () => {
       logger.auth('logout_attempt')
       
-      const response = await fetch('/api/auth/logout', {
-        method: 'POST',
-      })
+      // Primero intentar logout directo con Supabase
+      const supabase = this.getSupabaseClient()
+      const { error: directError } = await supabase.auth.signOut()
+      
+      if (directError) {
+        logger.warn('Direct logout failed, trying API', { error: directError.message })
+        
+        // Si falla el logout directo, intentar con la API
+        const response = await fetch('/api/auth/logout', {
+          method: 'POST',
+        })
 
-      if (!response.ok) {
-        const data = await response.json()
-        logger.auth('logout_failed', undefined, { error: data.error })
-        throw new Error(data.error || 'Logout failed')
+        if (!response.ok) {
+          const data = await response.json()
+          logger.auth('logout_failed', undefined, { error: data.error })
+          throw new Error(data.error || 'Logout failed')
+        }
       }
 
       logger.auth('logout_success')
-    }).then(result => {
-      if (!result.success) {
-        // Fallback: intentar logout directo
-        logger.warn('Using fallback logout method')
-        const supabase = this.getSupabaseClient()
-        return supabase.auth.signOut().then(({ error }: { error: { message: string } | null }) => {
-          if (error) {
-            logger.auth('fallback_logout_failed', undefined, { error: error.message })
-            return failure(new Error(error.message))
-          }
-          logger.auth('fallback_logout_success')
-          return success(undefined)
-        })
-      }
-      return result
     })
   }
 

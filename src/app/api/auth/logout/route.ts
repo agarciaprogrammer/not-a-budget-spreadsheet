@@ -8,6 +8,15 @@ export async function POST() {
   try {
     const supabase = await createServerSupabaseClient()
     
+    // Verificar si hay una sesión antes de intentar logout
+    const { data: { session } } = await supabase.auth.getSession()
+    
+    if (!session) {
+      // Si no hay sesión, considerar el logout como exitoso
+      console.log('No active session found during logout')
+      return NextResponse.json({ success: true, message: 'No active session' })
+    }
+    
     const logoutResult = await tryAsync(async () => {
       const { error } = await supabase.auth.signOut()
       if (error) {

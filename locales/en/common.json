@@ -27,6 +27,8 @@
     "create.account": "Create your account",
     "sign.in": "Sign in",
     "sign.up": "Sign up",
+    "signing.in": "Signing in...",
+    "signing.up": "Signing up...",
     "no.account.signup": "Don't have an account? Sign up",
     "have.account.signin": "Already have an account? Sign in",
     "username.placeholder": "Username",

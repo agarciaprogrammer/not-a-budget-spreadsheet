@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { useTranslation } from '@/hooks/useTranslation'
+import { LoadingSpinner } from '@/components/ui/LoadingState'
 
 export default function AuthForm() {
   const [isLogin, setIsLogin] = useState(true)
@@ -11,12 +12,14 @@ export default function AuthForm() {
   const [password, setPassword] = useState('')
   const [localError, setLocalError] = useState<string | null>(null)
   const [verifyEmail, setVerifyEmail] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const { signIn, signUp, error: contextError } = useAuth()
   const { t } = useTranslation()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLocalError(null)
+    setIsLoading(true)
     
     try {
       if (isLogin) {
@@ -30,6 +33,8 @@ export default function AuthForm() {
     } catch (err) {
       setLocalError(err instanceof Error ? err.message : t('auth.error.occurred'))
       console.error('"AuthForm" error:', err)
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -75,6 +80,7 @@ export default function AuthForm() {
                 placeholder={t('auth.username.placeholder')}
                 pattern="[a-zA-Z0-9_]{3,}"
                 title={t('auth.username.validation')}
+                disabled={isLoading}
               />
             </div>
             {!isLogin && (
@@ -88,6 +94,7 @@ export default function AuthForm() {
                   onChange={(e) => setEmail(e.target.value)}
                   className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                   placeholder={t('auth.email.placeholder')}
+                  disabled={isLoading}
                 />
               </div>
             )}
@@ -101,6 +108,7 @@ export default function AuthForm() {
                 onChange={(e) => setPassword(e.target.value)}
                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                 placeholder={t('auth.password.placeholder')}
+                disabled={isLoading}
               />
             </div>
           </div>
@@ -108,9 +116,17 @@ export default function AuthForm() {
           <div>
             <button
               type="submit"
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 cursor-pointer"
+              disabled={isLoading}
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLogin ? t('auth.sign.in') : t('auth.sign.up')}
+              {isLoading ? (
+                <div className="flex items-center">
+                  <LoadingSpinner size="sm" className="mr-2" />
+                  {isLogin ? t('auth.signing.in') : t('auth.signing.up')}
+                </div>
+              ) : (
+                isLogin ? t('auth.sign.in') : t('auth.sign.up')
+              )}
             </button>
           </div>
 
@@ -118,7 +134,8 @@ export default function AuthForm() {
             <button
               type="button"
               onClick={() => setIsLogin(!isLogin)}
-              className="text-sm text-indigo-600 hover:text-indigo-500 cursor-pointer"
+              disabled={isLoading}
+              className="text-sm text-indigo-600 hover:text-indigo-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLogin
                 ? t('auth.no.account.signup')

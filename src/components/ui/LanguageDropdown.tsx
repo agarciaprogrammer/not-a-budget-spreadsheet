@@ -37,13 +37,12 @@ export function LanguageDropdown() {
       // Save the selected language using the hook
       saveLanguage(languageCode)
       
+      // Change the i18n language without reloading the page
       await i18n.changeLanguage(languageCode)
       setIsOpen(false)
       
-      // Reload the page to ensure all components reflect the new language
-      // This maintains the current route while reloading
-      const currentPath = window.location.pathname + window.location.search
-      window.location.href = currentPath
+      // No need to reload the page - the i18n change should be sufficient
+      // The persisted language will be used on next page load
     } catch (error) {
       console.error('Error changing language:', error)
     }

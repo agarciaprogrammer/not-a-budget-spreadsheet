@@ -136,10 +136,15 @@ export function toSlug(text: string): string {
     .replace(/^-+|-+$/g, '')
 } 
 
-export function getMonthName(month: number): string {
-  const months = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ]
-  return months[month - 1] // month is 1-12, array is 0-11
+export function getMonthName(month: number, locale: string = 'en'): string {
+  const date = new Date(2024, month - 1, 1) // month is 1-12, Date constructor expects 0-11
+  const localeCode = locale === 'es' ? 'es-ES' : 'en-US'
+  const monthName = date.toLocaleDateString(localeCode, { month: 'long' })
+  
+  // Capitalize first letter for Spanish
+  if (locale === 'es') {
+    return monthName.charAt(0).toUpperCase() + monthName.slice(1)
+  }
+  
+  return monthName
 } 

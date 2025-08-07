@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/Button'
 import { transactionService, type Category } from '@/lib/services/transaction.service'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { formatDateToYYYYMMDD } from '@/lib/utils/date-utils'
+import { useTranslation } from '@/hooks/useTranslation'
+import { useCategoryTranslation } from '@/hooks/useCategoryTranslation'
 
 export interface TransactionFormData {
   type: 'income' | 'expense'
@@ -31,6 +33,8 @@ export function TransactionForm({
 }: TransactionFormProps) {
   const { user } = useAuth()
   const [categories, setCategories] = useState<Category[]>([])
+  const { t } = useTranslation()
+  const { translateCategoryName } = useCategoryTranslation()
   const [formData, setFormData] = useState<TransactionFormData>({
     type: 'expense',
     amount: 0,
@@ -66,15 +70,15 @@ export function TransactionForm({
     const newErrors: Record<string, string> = {}
 
     if (!formData.amount || formData.amount <= 0) {
-      newErrors.amount = 'Amount must be greater than 0'
+      newErrors.amount = t('form.validation.amount.required')
     }
 
     if (!formData.date) {
-      newErrors.date = 'Date is required'
+      newErrors.date = t('form.validation.date.required')
     }
 
     if (!formData.category_id) {
-      newErrors.category_id = 'Category is required'
+      newErrors.category_id = t('form.validation.category.required')
     }
 
     setErrors(newErrors)
@@ -95,7 +99,7 @@ export function TransactionForm({
 
   const categoryOptions: SelectOption[] = categories.map(category => ({
     value: category.id,
-    label: category.name
+    label: translateCategoryName(category.name)
   }))
 
   return (
@@ -103,7 +107,7 @@ export function TransactionForm({
       {/* Tipo de transacción */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          Type
+          {t('form.transaction.type')}
         </label>
         <div className="flex space-x-4">
           <label className="flex items-center text-gray-700">
@@ -115,7 +119,7 @@ export function TransactionForm({
               onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as 'income' | 'expense' }))}
               className="mr-2"
             />
-            Expense
+            {t('form.transaction.expense')}
           </label>
           <label className="flex items-center text-gray-700">
             <input
@@ -126,23 +130,23 @@ export function TransactionForm({
               onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as 'income' | 'expense' }))}
               className="mr-2"
             />
-            Income
+            {t('form.transaction.income')}
           </label>
         </div>
       </div>
 
       {/* Descripción */}
       <Input
-        label="Description"
+        label={t('form.transaction.description')}
         type="text"
         value={formData.description || ''}
         onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-        placeholder="Ej: Food, Transport, etc."
+        placeholder={t('form.transaction.description.placeholder')}
       />
 
       {/* Fecha */}
       <Input
-        label="Date"
+        label={t('form.transaction.date')}
         type="date"
         value={formData.date || ''}
         onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
@@ -152,18 +156,18 @@ export function TransactionForm({
 
       {/* Categoría */}
       <Select
-        label="Category"
+        label={t('form.transaction.category')}
         options={categoryOptions}
         value={formData.category_id || ''}
         onChange={(e) => setFormData(prev => ({ ...prev, category_id: e.target.value }))}
         error={errors.category_id}
-        placeholder="Select a category"
+        placeholder={t('form.transaction.category.placeholder')}
         required
       />
 
       {/* Monto */}
       <Input
-        label="Amount"
+        label={t('form.transaction.amount')}
         type="number"
         step="0.01"
         min="0"
@@ -181,14 +185,14 @@ export function TransactionForm({
           onClick={onCancel}
           className="flex-1"
         >
-          Cancel
+          {t('cancel')}
         </Button>
         <Button
           type="submit"
           loading={loading}
           className="flex-1"
         >
-          {loading ? 'Adding...' : 'Add'}
+          {loading ? t('form.transaction.adding') : t('add')}
         </Button>
       </div>
     </form>

@@ -16,8 +16,8 @@ export function Card({
   const paddings = {
     none: '',
     sm: 'p-4',
-    md: 'p-6',
-    lg: 'p-8',
+    md: 'p-6 sm:p-6 md:p-8',
+    lg: 'p-8 sm:p-6 md:p-8 lg:p-10',
     smx: 'py-1'
   }
 

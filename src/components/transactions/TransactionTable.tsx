@@ -10,6 +10,8 @@ import { EmptyTransactions } from '@/components/ui/EmptyState'
 import { Button } from '@/components/ui/Button'
 import { Pagination } from '@/components/ui/Pagination'
 import { formatCurrency, formatDate } from '@/lib/utils/formatters'
+import { useTranslation } from '@/hooks/useTranslation'
+import { useCategoryTranslation } from '@/hooks/useCategoryTranslation'
 
 interface TransactionTableProps {
   refreshTrigger: number
@@ -20,6 +22,8 @@ interface TransactionTableProps {
 export default function TransactionTable({ refreshTrigger, onAddTransaction, onRefresh }: TransactionTableProps) {
   const { user } = useAuth()
   const { monthRange } = useDashboardDate()
+  const { t } = useTranslation()
+  const { translateCategoryName } = useCategoryTranslation()
   
   // Pagination state
   const [page, setPage] = useState(1)
@@ -48,11 +52,11 @@ export default function TransactionTable({ refreshTrigger, onAddTransaction, onR
       setTotal(result.total)
     } catch (error) {
       console.error('Error loading transactions:', error)
-      setError(error instanceof Error ? error.message : 'Error loading transactions')
+      setError(error instanceof Error ? error.message : t('transactions.load.error'))
     } finally {
       setLoading(false)
     }
-  }, [user, monthRange, page, pageSize])
+  }, [user, monthRange, page, pageSize, t])
 
   useEffect(() => {
     if (user) {
@@ -70,7 +74,7 @@ export default function TransactionTable({ refreshTrigger, onAddTransaction, onR
   }
 
   const deleteTransaction = async (transactionId: string) => {
-    if (!user || !confirm('Are you sure you want to delete this transaction?')) {
+    if (!user || !confirm(t('transactions.delete.confirm'))) {
       return
     }
 
@@ -82,12 +86,12 @@ export default function TransactionTable({ refreshTrigger, onAddTransaction, onR
       }
     } catch (error) {
       console.error('Error deleting transaction:', error)
-      alert('Error deleting transaction')
+      alert(t('transactions.delete.error'))
     }
   }
 
   if (loading) {
-    return <LoadingState message="Loading transactions..." />
+    return <LoadingState message={t('transactions.loading')} />
   }
 
   if (error) {
@@ -107,22 +111,22 @@ export default function TransactionTable({ refreshTrigger, onAddTransaction, onR
           <thead className="bg-gray-50">
             <tr>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Date
+                {t('transactions.table.date')}
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Description
+                {t('transactions.table.description')}
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Category
+                {t('transactions.table.category')}
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Type
+                {t('transactions.table.type')}
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Amount
+                {t('transactions.table.amount')}
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
+                {t('transactions.table.actions')}
               </th>
             </tr>
           </thead>
@@ -137,7 +141,7 @@ export default function TransactionTable({ refreshTrigger, onAddTransaction, onR
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-900">
                   {/* Acceder a la categoría a través de la relación */}
-                  {(transaction as Transaction & { categories?: { name: string } }).categories?.name || 'Unknown'}
+                  {translateCategoryName((transaction as Transaction & { categories?: { name: string } }).categories?.name || t('transactions.table.unknown'))}
                 </td>
                 <td className="px-4 py-3 text-sm">
                   <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
@@ -145,7 +149,7 @@ export default function TransactionTable({ refreshTrigger, onAddTransaction, onR
                       ? 'bg-green-100 text-green-800' 
                       : 'bg-red-100 text-red-800'
                   }`}>
-                    {transaction.type === 'income' ? 'Income' : 'Expense'}
+                    {transaction.type === 'income' ? t('transactions.type.income') : t('transactions.type.expense')}
                   </span>
                 </td>
                 <td className={`px-4 py-3 text-sm font-medium ${
@@ -159,7 +163,7 @@ export default function TransactionTable({ refreshTrigger, onAddTransaction, onR
                     size="sm"
                     onClick={() => deleteTransaction(transaction.id)}
                     className="text-red-600 hover:text-red-900"
-                    title="Delete transaction"
+                    title={t('transactions.delete.title')}
                   >
                     🗑️
                   </Button>

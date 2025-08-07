@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils/cn'
+import { useTranslation } from '@/hooks/useTranslation'
 
 interface EmptyStateProps {
   title: string
@@ -36,10 +37,12 @@ export function EmptyState({
 }
 
 export function EmptyTransactions({ onAddTransaction }: { onAddTransaction: () => void }) {
+  const { t } = useTranslation()
+  
   return (
     <EmptyState
-      title="No transactions yet"
-      description="Start tracking your finances by adding your first transaction."
+      title={t('transactions.empty.title')}
+      description={t('transactions.empty.description')}
       icon={
         <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
@@ -50,7 +53,7 @@ export function EmptyTransactions({ onAddTransaction }: { onAddTransaction: () =
           onClick={onAddTransaction}
           className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
         >
-          Add Transaction
+          {t('transactions.add.button')}
         </button>
       }
     />

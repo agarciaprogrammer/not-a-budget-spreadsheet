@@ -7,6 +7,7 @@ import { useState } from 'react'
 import { Modal } from '@/components/ui/Modal'
 import { Input } from '@/components/ui/Input'
 import { formatCurrency, getMonthName } from '@/lib/utils/formatters'
+import { useTranslation } from '@/hooks/useTranslation'
 
 interface MonthlyLimitCardProps {
   userId: string
@@ -18,6 +19,7 @@ export default function MonthlyLimitCard({ userId, refreshTrigger }: MonthlyLimi
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [newLimit, setNewLimit] = useState('')
   const [isUpdating, setIsUpdating] = useState(false)
+  const { t, locale } = useTranslation()
 
   const handleSetLimit = async () => {
     if (!newLimit || isNaN(Number(newLimit))) return
@@ -41,9 +43,9 @@ export default function MonthlyLimitCard({ userId, refreshTrigger }: MonthlyLimi
 
   const statusText = limit 
     ? (isOverLimit
-        ? "🎉 Congratulations, you've officially ignored your limit!"
-        : `You have ${formatCurrency(remaining)} remaining this month.`)
-    : "Set a monthly spending limit to track your budget."
+        ? t('dashboard.limit.ignored')
+        : t('dashboard.limit.remaining', { amount: formatCurrency(remaining) }))
+    : t('dashboard.limit.set.message')
 
   return (
     <>
@@ -88,9 +90,9 @@ export default function MonthlyLimitCard({ userId, refreshTrigger }: MonthlyLimi
             <div className="flex-1">
               <div className="flex items-center justify-between mb-2">
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900">Monthly Limit</h3>
+                  <h3 className="text-lg font-medium text-gray-900">{t('dashboard.monthly.limit')}</h3>
                   <p className="text-sm text-gray-500">
-                    {getMonthName(currentMonth.month)} {currentMonth.year}
+                    {getMonthName(currentMonth.month, locale)} {currentMonth.year}
                   </p>
                 </div>
                 <Button
@@ -98,13 +100,13 @@ export default function MonthlyLimitCard({ userId, refreshTrigger }: MonthlyLimi
                   size="sm"
                   onClick={() => setIsModalOpen(true)}
                 >
-                  {limit ? 'Edit' : 'Set Limit'}
+                  {limit ? t('dashboard.limit.edit') : t('dashboard.limit.set')}
                 </Button>
               </div>
               
               {limit && (
                 <p className="text-sm text-gray-600 mb-2">
-                  Set to <strong>{formatCurrency(limit)}</strong>
+                  {t('dashboard.limit.set.to')} <strong>{formatCurrency(limit)}</strong>
                 </p>
               )}
               
@@ -123,17 +125,17 @@ export default function MonthlyLimitCard({ userId, refreshTrigger }: MonthlyLimi
           setIsModalOpen(false)
           setNewLimit('')
         }}
-        title={limit ? 'Edit Monthly Limit' : 'Set Monthly Limit'}
+        title={limit ? t('dashboard.limit.edit.title') : t('dashboard.limit.set.title')}
       >
         <div className="space-y-4">
           <div>
             <label htmlFor="limit" className="block text-sm font-medium text-gray-700 mb-1">
-              Monthly Spending Limit ($)
+              {t('dashboard.limit.monthly.spending')}
             </label>
             <Input
               id="limit"
               type="number"
-              placeholder="Enter amount"
+              placeholder={t('dashboard.limit.enter.amount')}
               value={newLimit}
               onChange={(e) => setNewLimit(e.target.value)}
               min="0"
@@ -149,13 +151,13 @@ export default function MonthlyLimitCard({ userId, refreshTrigger }: MonthlyLimi
                 setNewLimit('')
               }}
             >
-              Cancel
+              {t('cancel')}
             </Button>
             <Button
               onClick={handleSetLimit}
               disabled={!newLimit || isNaN(Number(newLimit)) || isUpdating}
             >
-              {isUpdating ? 'Saving...' : 'Save'}
+              {isUpdating ? t('dashboard.limit.saving') : t('save')}
             </Button>
           </div>
         </div>

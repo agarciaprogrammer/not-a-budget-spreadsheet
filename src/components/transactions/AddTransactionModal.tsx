@@ -5,6 +5,7 @@ import { Modal } from '@/components/ui/Modal'
 import { TransactionForm, type TransactionFormData } from '@/components/forms/TransactionForm'
 import { transactionService } from '@/lib/services/transaction.service'
 import { useAuth } from '@/components/providers/AuthProvider'
+import { useTranslation } from '@/hooks/useTranslation'
 
 interface AddTransactionModalProps {
   isOpen: boolean
@@ -15,11 +16,12 @@ interface AddTransactionModalProps {
 export default function AddTransactionModal({ 
   isOpen, 
   onClose, 
-  onTransactionAdded 
+ onTransactionAdded 
 }: AddTransactionModalProps) {
   const { user } = useAuth()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const { t } = useTranslation()
 
   const handleSubmit = async (formData: TransactionFormData) => {
     if (!user) return
@@ -33,7 +35,7 @@ export default function AddTransactionModal({
       onClose()
     } catch (error) {
       console.error('Error adding transaction:', error)
-      setError(error instanceof Error ? error.message : 'Error al agregar transacción')
+      setError(error instanceof Error ? error.message : t('transactions.add.error'))
     } finally {
       setLoading(false)
     }
@@ -48,7 +50,7 @@ export default function AddTransactionModal({
     <Modal
       isOpen={isOpen}
       onClose={handleCancel}
-      title="Add Transaction"
+      title={t('transactions.add.title')}
       size="md"
     >
       {error && (

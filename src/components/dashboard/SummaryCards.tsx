@@ -1,6 +1,7 @@
 'use client'
 
 import { useSummaryData } from '@/hooks/useSummaryData'
+import { useTranslation } from '@/hooks/useTranslation'
 
 interface SummaryCardsProps {
   refreshTrigger: number
@@ -8,6 +9,7 @@ interface SummaryCardsProps {
 
 export default function SummaryCards({ refreshTrigger }: SummaryCardsProps) {
   const { summaryData, loading, error } = useSummaryData(refreshTrigger)
+  const { t } = useTranslation()
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -19,7 +21,7 @@ export default function SummaryCards({ refreshTrigger }: SummaryCardsProps) {
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         {[1, 2, 3].map((i) => (
           <div key={i} className="bg-white rounded-lg shadow p-6 animate-pulse">
             <div className="flex items-center">
@@ -45,7 +47,7 @@ export default function SummaryCards({ refreshTrigger }: SummaryCardsProps) {
                 <span className="text-2xl">📊</span>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Error</p>
+                <p className="text-sm font-medium text-gray-600">{t('dashboard.error')}</p>
                 <p className="text-lg font-semibold text-gray-400">--</p>
               </div>
             </div>
@@ -64,7 +66,7 @@ export default function SummaryCards({ refreshTrigger }: SummaryCardsProps) {
             <span className="text-2xl">💰</span>
           </div>
           <div className="ml-4">
-            <p className="text-sm font-medium text-gray-600">Total Income</p>
+            <p className="text-sm font-medium text-gray-600">{t('dashboard.total.income')}</p>
             <p className="text-2xl font-semibold text-green-600">
               {formatCurrency(summaryData.totalIncome)}
             </p>
@@ -79,7 +81,7 @@ export default function SummaryCards({ refreshTrigger }: SummaryCardsProps) {
             <span className="text-2xl">💸</span>
           </div>
           <div className="ml-4">
-            <p className="text-sm font-medium text-gray-600">Total Expenses</p>
+            <p className="text-sm font-medium text-gray-600">{t('dashboard.total.expenses')}</p>
             <p className="text-2xl font-semibold text-red-600">
               {formatCurrency(summaryData.totalExpenses)}
             </p>
@@ -98,7 +100,7 @@ export default function SummaryCards({ refreshTrigger }: SummaryCardsProps) {
             <span className="text-2xl">📊</span>
           </div>
           <div className="ml-4">
-            <p className="text-sm font-medium text-gray-600">Net Balance</p>
+            <p className="text-sm font-medium text-gray-600">{t('dashboard.net.balance')}</p>
             <p className={`text-2xl font-semibold ${
               summaryData.netBalance >= 0 ? 'text-blue-600' : 'text-orange-600'
             }`}>

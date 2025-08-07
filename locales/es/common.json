@@ -1,0 +1,129 @@
+{
+  "welcome": "Bienvenido",
+  "budget": "Presupuesto",
+  "settings": "Configuración",
+  "logout": "Cerrar Sesión",
+  "login": "Iniciar Sesión",
+  "signup": "Registrarse",
+  "email": "Correo Electrónico",
+  "password": "Contraseña",
+  "username": "Nombre de Usuario",
+  "submit": "Enviar",
+  "cancel": "Cancelar",
+  "save": "Guardar",
+  "delete": "Eliminar",
+  "edit": "Editar",
+  "add": "Agregar",
+  "loading": "Cargando...",
+  "error": "Error",
+  "success": "Éxito",
+  "nav": {
+    "dashboard": "Panel de Control",
+    "transactions": "Transacciones",
+    "change.language": "Cambiar idioma"
+  },
+  "auth": {
+    "welcome.back": "Bienvenido de vuelta",
+    "create.account": "Crea tu cuenta",
+    "sign.in": "Iniciar sesión",
+    "sign.up": "Registrarse",
+    "no.account.signup": "¿No tienes cuenta? Regístrate",
+    "have.account.signin": "¿Ya tienes cuenta? Inicia sesión",
+    "username.placeholder": "Nombre de usuario",
+    "username.validation": "El nombre de usuario debe tener al menos 3 caracteres y solo puede contener letras, números y guiones bajos",
+    "email.placeholder": "Correo electrónico (para recuperación de cuenta)",
+    "password.placeholder": "Contraseña",
+    "verify.email.title": "Revisa tu correo",
+    "verify.email.message": "Te hemos enviado un enlace de verificación. Por favor revisa tu correo para continuar.",
+    "error.occurred": "Ocurrió un error"
+  },
+  "dashboard": {
+    "loading": "Cargando panel...",
+    "auth.error.title": "Error de Autenticación",
+    "access.denied.title": "Acceso Denegado",
+    "access.denied.message": "Debes iniciar sesión para ver el panel.",
+    "recent.transactions": "Transacciones Recientes",
+    "total.income": "Ingresos Totales",
+    "total.expenses": "Gastos Totales",
+    "net.balance": "Balance Neto",
+    "error": "Error",
+    "current.month": "Mes Actual",
+    "monthly.limit": "Límite Mensual",
+    "limit.set": "Establecer Límite",
+    "limit.edit": "Editar",
+    "limit.set.to": "Establecido en",
+    "limit.set.message": "Establece un límite de gasto mensual para rastrear tu presupuesto.",
+    "limit.remaining": "Te quedan {{amount}} este mes.",
+    "limit.ignored": "🎉 ¡Felicitaciones, has ignorado oficialmente tu límite!",
+    "limit.edit.title": "Editar Límite Mensual",
+    "limit.set.title": "Establecer Límite Mensual",
+    "limit.monthly.spending": "Límite de Gasto Mensual ($)",
+    "limit.enter.amount": "Ingresa el monto",
+    "limit.saving": "Guardando...",
+    "charts": {
+      "total": "Total",
+      "error.title": "Error al Cargar Datos",
+      "tooltip": {
+        "amount": "Monto",
+        "percentage": "Porcentaje",
+        "income": "Ingresos",
+        "expense": "Gastos"
+      },
+      "legend": {
+        "income": "Ingresos",
+        "expense": "Gastos"
+      },
+      "category": {
+        "breakdown": "Desglose por Categorías",
+        "loading": "Cargando datos de categorías...",
+        "no.expenses": "Sin gastos este mes"
+      },
+      "income.expense": {
+        "title": "Ingresos vs Gastos en el Tiempo",
+        "subtitle": "Últimos {{months}} meses",
+        "no.data": "No hay historial de transacciones disponible"
+      },
+      "weekly.spending": {
+        "title": "Gastos Semanales",
+        "no.data": "No hay datos de gastos disponibles para las últimas 4 semanas"
+      }
+    }
+  },
+  "transactions": {
+    "add.title": "Agregar Transacción",
+    "add.button": "Agregar Transacción",
+    "add.error": "Error al agregar transacción",
+    "add.loading": "Agregando...",
+    "load.error": "Error al cargar transacciones",
+    "load.loading": "Cargando transacciones...",
+    "delete.confirm": "¿Estás seguro de que quieres eliminar esta transacción?",
+    "delete.error": "Error al eliminar transacción",
+    "delete.title": "Eliminar transacción",
+    "empty.title": "Aún no hay transacciones",
+    "empty.description": "Comienza a rastrear tus finanzas agregando tu primera transacción.",
+    "table.date": "Fecha",
+    "table.description": "Descripción",
+    "table.category": "Categoría",
+    "table.type": "Tipo",
+    "table.amount": "Monto",
+    "table.actions": "Acciones",
+    "table.unknown": "Desconocido",
+    "type.income": "Ingreso",
+    "type.expense": "Gasto"
+  },
+  "form": {
+    "transaction.type": "Tipo",
+    "transaction.expense": "Gasto",
+    "transaction.income": "Ingreso",
+    "transaction.description": "Descripción",
+    "transaction.description.placeholder": "Ej: Comida, Transporte, etc.",
+    "transaction.date": "Fecha",
+    "transaction.category": "Categoría",
+    "transaction.category.placeholder": "Selecciona una categoría",
+    "transaction.amount": "Monto",
+    "transaction.adding": "Agregando...",
+    "validation.amount.required": "El monto debe ser mayor a 0",
+    "validation.date.required": "La fecha es requerida",
+    "validation.category.required": "La categoría es requerida"
+  }
+} 

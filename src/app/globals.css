@@ -24,3 +24,12 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Extra small devices (portrait phones, less than 576px) */
+@media (max-width: 480px) {
+  canvas,
+  svg { 
+    max-width: 100% !important;
+  }
+
+}

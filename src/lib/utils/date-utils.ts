@@ -42,11 +42,19 @@ export function getCurrentMonthRange(): MonthDateRange {
  * @param date - Date to format
  * @returns Formatted string like "January 2024"
  */
-export function formatMonthForDisplay(date: Date): string {
-  return date.toLocaleDateString('en-US', {
+export function formatMonthForDisplay(date: Date, locale: string = 'en'): string {
+  const localeCode = locale === 'es' ? 'es-ES' : 'en-US'
+  const formatted = date.toLocaleDateString(localeCode, {
     year: 'numeric',
     month: 'long'
   })
+  
+  // Capitalize first letter for Spanish
+  if (locale === 'es') {
+    return formatted.charAt(0).toUpperCase() + formatted.slice(1)
+  }
+  
+  return formatted
 }
 
 /**

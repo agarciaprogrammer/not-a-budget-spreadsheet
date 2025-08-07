@@ -3,6 +3,7 @@
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import { useIncomeExpenseHistory } from '@/hooks/useIncomeExpenseHistory'
 import DashboardChartCard from './DashboardChartCard'
+import { useTranslation } from '@/hooks/useTranslation'
 
 interface IncomeExpenseLineChartProps {
   refreshTrigger: number
@@ -31,22 +32,36 @@ const formatMonth = (monthKey: string) => {
   return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
 }
 
-const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
+const formatMonthForTooltip = (monthKey: string, locale: string = 'en') => {
+  const [year, month] = monthKey.split('-')
+  const date = new Date(parseInt(year), parseInt(month) - 1)
+  const localeCode = locale === 'es' ? 'es-ES' : 'en-US'
+  const formatted = date.toLocaleDateString(localeCode, { month: 'short', year: 'numeric' })
+  
+  // Capitalize first letter for Spanish
+  if (locale === 'es') {
+    return formatted.charAt(0).toUpperCase() + formatted.slice(1)
+  }
+  
+  return formatted
+}
+
+const CustomTooltip = ({ active, payload, label, t, locale }: TooltipProps & { t: (key: string) => string, locale: string }) => {
   if (active && payload && payload.length) {
     const incomeData = payload.find((p) => p.dataKey === 'income')
     const expenseData = payload.find((p) => p.dataKey === 'expense')
     
     return (
       <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
-        <p className="font-semibold text-gray-900 mb-2">{formatMonth(label || '')}</p>
+        <p className="font-semibold text-gray-900 mb-2">{formatMonthForTooltip(label || '', locale)}</p>
         {incomeData && (
           <p className="text-sm text-green-600">
-            Income: {formatCurrency(incomeData.value)}
+            {t('dashboard.charts.tooltip.income')}: {formatCurrency(incomeData.value)}
           </p>
         )}
         {expenseData && (
           <p className="text-sm text-red-600">
-            Expense: {formatCurrency(expenseData.value)}
+            {t('dashboard.charts.tooltip.expense')}: {formatCurrency(expenseData.value)}
           </p>
         )}
       </div>
@@ -57,17 +72,18 @@ const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
 
 export default function IncomeExpenseLineChart({ refreshTrigger }: IncomeExpenseLineChartProps) {
   const { historyData, loading, error } = useIncomeExpenseHistory(refreshTrigger, 6)
+  const { t, locale } = useTranslation()
   
   const isEmpty = !loading && !error && historyData.data.length === 0
 
   return (
     <DashboardChartCard
-      title="Income vs Expense Over Time"
-      subtitle={`Last ${historyData.monthsBack} months`}
+      title={t('dashboard.charts.income.expense.title')}
+      subtitle={t('dashboard.charts.income.expense.subtitle', { months: historyData.monthsBack })}
       loading={loading}
       error={error}
       isEmpty={isEmpty}
-      emptyMessage="No transaction history available"
+      emptyMessage={t('dashboard.charts.income.expense.no.data')}
     >
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
@@ -84,7 +100,7 @@ export default function IncomeExpenseLineChart({ refreshTrigger }: IncomeExpense
               tick={{ fontSize: 12 }}
               stroke="#6b7280"
             />
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip content={<CustomTooltip t={t} locale={locale} />} />
             <Legend />
             <Line
               type="monotone"
@@ -93,7 +109,7 @@ export default function IncomeExpenseLineChart({ refreshTrigger }: IncomeExpense
               strokeWidth={2}
               dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }}
               activeDot={{ r: 6, stroke: '#10b981', strokeWidth: 2 }}
-              name="Income"
+              name={t('dashboard.charts.legend.income')}
             />
             <Line
               type="monotone"
@@ -102,7 +118,7 @@ export default function IncomeExpenseLineChart({ refreshTrigger }: IncomeExpense
               strokeWidth={2}
               dot={{ fill: '#ef4444', strokeWidth: 2, r: 4 }}
               activeDot={{ r: 6, stroke: '#ef4444', strokeWidth: 2 }}
-              name="Expense"
+              name={t('dashboard.charts.legend.expense')}
             />
           </LineChart>
         </ResponsiveContainer>

@@ -12,6 +12,10 @@ export { EmptyState, EmptyTransactions } from './EmptyState'
 // Navigation
 export { Pagination } from './Pagination'
 
+// Internationalization
+export { LanguageSwitcher } from './LanguageSwitcher'
+export { LanguageDropdown } from './LanguageDropdown'
+
 // Layout
 export { PageContainer } from '../layout/PageContainer'
 export { Card, CardHeader, CardContent } from '../layout/Card'

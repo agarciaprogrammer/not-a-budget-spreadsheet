@@ -16,11 +16,13 @@ import WeeklySpendingChart from '@/components/dashboard/WeeklySpendingChart'
 import MonthlyLimitCard from '@/components/dashboard/MonthlyLimitCard'
 import { DashboardDateProvider } from '@/components/providers/DashboardDateProvider'
 import MonthSelector from '@/components/dashboard/MonthSelector'
+import { useTranslation } from '@/hooks/useTranslation'
 
 export default function DashboardPage() {
   const { user, loading, error } = useAuth()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
+  const { t } = useTranslation()
 
   const handleTransactionAdded = () => {
     setRefreshTrigger(prev => prev + 1)
@@ -36,13 +38,13 @@ export default function DashboardPage() {
 
   // Estados de autenticación
   if (loading) {
-    return <LoadingState message="Loading dashboard..." className="min-h-screen" />
+    return <LoadingState message={t('dashboard.loading')} className="min-h-screen" />
   }
 
   if (error) {
     return (
       <ErrorState 
-        title="Authentication Error"
+        title={t('dashboard.auth.error.title')}
         message={error}
         className="min-h-screen"
       />
@@ -52,8 +54,8 @@ export default function DashboardPage() {
   if (!user) {
     return (
       <ErrorState 
-        title="Access Denied"
-        message="You must be logged in to view the dashboard."
+        title={t('dashboard.access.denied.title')}
+        message={t('dashboard.access.denied.message')}
         className="min-h-screen"
       />
     )
@@ -65,7 +67,7 @@ export default function DashboardPage() {
         <MonthSelector />
         <SummaryCards refreshTrigger={refreshTrigger} />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 my-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 my-8">
           <CategoryPieChart refreshTrigger={refreshTrigger} />
           <IncomeExpenseLineChart refreshTrigger={refreshTrigger} />
           <WeeklySpendingChart refreshTrigger={refreshTrigger} />
@@ -104,13 +106,15 @@ function TransactionsPanel({
   onAddTransaction: () => void
   onRefresh: () => void
 }) {
+  const { t } = useTranslation()
+  
   return (
     <Card>
       <CardHeader>
         <div className="flex justify-between items-center">
-          <h2 className="text-xl font-semibold text-gray-900">Recent Transactions</h2>
+          <h2 className="text-xl font-semibold text-gray-900">{t('dashboard.recent.transactions')}</h2>
           <Button onClick={onOpenModal}>
-            + Add Transaction
+            + {t('transactions.add.button')}
           </Button>
         </div>
       </CardHeader>

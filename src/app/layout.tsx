@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import { AuthProvider } from '@/components/providers/AuthProvider'
+import { I18nProvider } from '@/components/providers/I18nProvider'
 import { ErrorBoundary } from '@/components/error/ErrorBoundary'
 import { config } from '@/lib/config/app.config'
 import UnconventionalNavbar from '@/components/UnconventionalNavbar'
@@ -22,17 +23,19 @@ export default function RootLayout({
     <html lang="es">
       <body className={inter.className}>
         <ErrorBoundary>
-          <AuthProvider>
-            <div className="min-h-screen bg-gray-50 flex">
-              <UnconventionalNavbar />
-              <div className="flex-1 ml-16">
-                <main className="flex-1">
-                  {children}
-                </main>
-                <UnconventionalFooter />
+          <I18nProvider locale="en">
+            <AuthProvider>
+              <div className="min-h-screen bg-gray-50 flex">
+                <UnconventionalNavbar />
+                <div className="flex-1 ml-16">
+                  <main className="flex-1">
+                    {children}
+                  </main>
+                  <UnconventionalFooter />
+                </div>
               </div>
-            </div>
-          </AuthProvider>
+            </AuthProvider>
+          </I18nProvider>
         </ErrorBoundary>
       </body>
     </html>

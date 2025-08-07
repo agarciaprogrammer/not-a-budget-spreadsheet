@@ -3,6 +3,7 @@
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { useWeeklySpending } from '@/hooks/useWeeklySpending'
 import DashboardChartCard from './DashboardChartCard'
+import { useTranslation } from '@/hooks/useTranslation'
 
 interface WeeklySpendingChartProps {
   refreshTrigger: number
@@ -10,6 +11,7 @@ interface WeeklySpendingChartProps {
 
 export default function WeeklySpendingChart({ refreshTrigger }: WeeklySpendingChartProps) {
   const { spendingData, loading, error } = useWeeklySpending(refreshTrigger)
+  const { t } = useTranslation()
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('es-AR', {
@@ -40,12 +42,12 @@ export default function WeeklySpendingChart({ refreshTrigger }: WeeklySpendingCh
 
   return (
     <DashboardChartCard 
-      title="Weekly Spending" 
-      subtitle={`Total: ${formatCurrency(spendingData.totalSpent)}`}
+      title={t('dashboard.charts.weekly.spending.title')} 
+      subtitle={`${t('dashboard.charts.total')}: ${formatCurrency(spendingData.totalSpent)}`}
       loading={loading}
       error={error}
       isEmpty={!loading && spendingData.data.length === 0}
-      emptyMessage="No spending data available for the past 4 weeks"
+      emptyMessage={t('dashboard.charts.weekly.spending.no.data')}
     >
       <ResponsiveContainer width="100%" height={250}>
         <BarChart data={spendingData.data} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>

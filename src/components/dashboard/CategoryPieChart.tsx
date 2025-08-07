@@ -6,6 +6,8 @@ import { LoadingState } from '@/components/ui/LoadingState'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { Card, CardHeader, CardContent } from '@/components/layout/Card'
 import DashboardChartCard from './DashboardChartCard'
+import { useTranslation } from '@/hooks/useTranslation'
+import { useCategoryTranslation } from '@/hooks/useCategoryTranslation'
 
 interface CategoryPieChartProps {
   refreshTrigger: number
@@ -41,17 +43,17 @@ const formatPercentage = (percentage: number) => {
   return `${percentage.toFixed(1)}%`
 }
 
-const CustomTooltip = ({ active, payload }: TooltipProps) => {
+const CustomTooltip = ({ active, payload, t }: TooltipProps & { t: (key: string) => string }) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload
     return (
       <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
         <p className="font-semibold text-gray-900">{data.name}</p>
         <p className="text-sm text-gray-600">
-          Amount: {formatCurrency(data.value)}
+          {t('dashboard.charts.tooltip.amount')}: {formatCurrency(data.value)}
         </p>
         <p className="text-sm text-gray-600">
-          Percentage: {formatPercentage(data.percentage)}
+          {t('dashboard.charts.tooltip.percentage')}: {formatPercentage(data.percentage)}
         </p>
       </div>
     )
@@ -77,15 +79,26 @@ const CustomLegend = ({ payload }: LegendProps) => {
 
 export default function CategoryPieChart({ refreshTrigger }: CategoryPieChartProps) {
   const { breakdownData, loading, error } = useCategoryBreakdown(refreshTrigger)
+  const { t } = useTranslation()
+  const { translateCategoryName } = useCategoryTranslation()
+
+  // Translate category names for display
+  const translatedData = {
+    ...breakdownData,
+    categories: breakdownData.categories.map(category => ({
+      ...category,
+      name: translateCategoryName(category.name)
+    }))
+  }
 
   if (loading) {
     return (
       <Card>
         <CardHeader>
-          <h3 className="text-lg font-semibold text-gray-900">Category Breakdown</h3>
+          <h3 className="text-lg font-semibold text-gray-900">{t('dashboard.charts.category.breakdown')}</h3>
         </CardHeader>
         <CardContent>
-          <LoadingState message="Loading category data..." className="h-64" />
+          <LoadingState message={t('dashboard.charts.category.loading')} className="h-64" />
         </CardContent>
       </Card>
     )
@@ -95,11 +108,11 @@ export default function CategoryPieChart({ refreshTrigger }: CategoryPieChartPro
     return (
       <Card>
         <CardHeader>
-          <h3 className="text-lg font-semibold text-gray-900">Category Breakdown</h3>
+          <h3 className="text-lg font-semibold text-gray-900">{t('dashboard.charts.category.breakdown')}</h3>
         </CardHeader>
         <CardContent>
           <ErrorState 
-            title="Error Loading Data"
+            title={t('dashboard.charts.error.title')}
             message={error}
             className="h-64"
           />
@@ -112,12 +125,12 @@ export default function CategoryPieChart({ refreshTrigger }: CategoryPieChartPro
     return (
       <Card>
         <CardHeader>
-          <h3 className="text-lg font-semibold text-gray-900">Category Breakdown</h3>
+          <h3 className="text-lg font-semibold text-gray-900">{t('dashboard.charts.category.breakdown')}</h3>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center justify-center h-64 text-gray-500">
             <span className="text-4xl mb-2">📊</span>
-            <p className="text-lg font-medium">No expenses this month</p>
+            <p className="text-lg font-medium">{t('dashboard.charts.category.no.expenses')}</p>
             <p className="text-sm">Add some transactions to see your category breakdown</p>
           </div>
         </CardContent>
@@ -127,12 +140,12 @@ export default function CategoryPieChart({ refreshTrigger }: CategoryPieChartPro
 
   return (
     <DashboardChartCard
-      title="Category Breakdown"
-      subtitle={`Total: ${formatCurrency(breakdownData.totalAmount)}`}
+      title={t('dashboard.charts.category.breakdown')}
+      subtitle={`${t('dashboard.charts.total')}: ${formatCurrency(breakdownData.totalAmount)}`}
       loading={loading}
       error={error}
       isEmpty={breakdownData.categories.length === 0}
-      emptyMessage="No expenses this month"
+      emptyMessage={t('dashboard.charts.category.no.expenses')}
       noPadding={false}
       showHeader={true}
     >
@@ -140,7 +153,7 @@ export default function CategoryPieChart({ refreshTrigger }: CategoryPieChartPro
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
-                data={breakdownData.categories}
+                data={translatedData.categories}
                 cx="50%"
                 cy="50%"
                 innerRadius={40}
@@ -148,11 +161,11 @@ export default function CategoryPieChart({ refreshTrigger }: CategoryPieChartPro
                 paddingAngle={2}
                 dataKey="value"
               >
-                {breakdownData.categories.map((entry, index) => (
+                {translatedData.categories.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} />
                 ))}
               </Pie>
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={<CustomTooltip t={t} />} />
               <Legend content={<CustomLegend />} />
             </PieChart>
           </ResponsiveContainer>

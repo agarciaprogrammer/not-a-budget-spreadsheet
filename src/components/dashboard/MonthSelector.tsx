@@ -4,6 +4,7 @@ import { useDashboardDate } from '@/components/providers/DashboardDateProvider'
 import { formatMonthForDisplay } from '@/lib/utils/date-utils'
 import { Button } from '@/components/ui/Button'
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
+import { useTranslation } from '@/hooks/useTranslation'
 
 export default function MonthSelector() {
   const { 
@@ -12,6 +13,7 @@ export default function MonthSelector() {
     goToNextMonth, 
     goToCurrentMonth 
   } = useDashboardDate()
+  const { t, locale } = useTranslation()
   
   const isCurrentMonth = selectedMonth.getMonth() === new Date().getMonth() && 
                         selectedMonth.getFullYear() === new Date().getFullYear()
@@ -19,7 +21,7 @@ export default function MonthSelector() {
   return (
     <div className="flex items-center justify-between bg-white rounded-lg shadow p-6 mb-6">
       <div className="flex items-center gap-4">
-        <h2 className="text-xl font-bold text-gray-900">Dashboard</h2>
+        <h2 className="text-xl font-bold text-gray-900">{t('nav.dashboard')}</h2>
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"
@@ -31,7 +33,7 @@ export default function MonthSelector() {
           </Button>
           
           <span className="text-lg font-medium text-gray-900 min-w-[120px] text-center">
-            {formatMonthForDisplay(selectedMonth)}
+            {formatMonthForDisplay(selectedMonth, locale)}
           </span>
           
           <Button
@@ -52,7 +54,7 @@ export default function MonthSelector() {
           onClick={goToCurrentMonth}
           className="text-sm"
         >
-          Current Month
+          {t('dashboard.current.month')}
         </Button>
       )}
     </div>

@@ -19,8 +19,83 @@
   "success": "Success",
   "nav": {
     "dashboard": "Dashboard",
+    "food": "Food",
     "transactions": "Transactions",
     "change.language": "Change language"
+  },
+  "food": {
+    "loading": "Loading kitchen inventory...",
+    "auth.error.title": "Authentication Error",
+    "access.denied.title": "Access Denied",
+    "access.denied.message": "You must be logged in to view the kitchen inventory.",
+    "inventory": {
+      "title": "Kitchen Inventory",
+      "subtitle": "Track what you have on hand and where it is stored.",
+      "add": "Add Ingredient",
+      "add.error": "Unable to add ingredient.",
+      "table": {
+        "ingredient": "Ingredient",
+        "category": "Category",
+        "quantity": "Quantity",
+        "unit": "Unit",
+        "totalWeight": "Total weight",
+        "storage": "Storage",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "empty": {
+        "title": "No ingredients yet",
+        "description": "Add your first ingredient to build your kitchen inventory."
+      },
+      "delete": {
+        "confirm": "Are you sure you want to delete this ingredient?",
+        "error": "Error deleting ingredient"
+      },
+      "actions": {
+        "edit": "Edit",
+        "consume": "Consume",
+        "delete": "Delete"
+      }
+    },
+    "storage": {
+      "fridge": "Fridge",
+      "freezer": "Freezer",
+      "pantry": "Pantry"
+    },
+    "status": {
+      "ok": "OK",
+      "low": "Low",
+      "restock": "Needs restock"
+    },
+    "restock": {
+      "title": "Needs Restock",
+      "subtitle": "Ingredients running low or out.",
+      "placeholder": "Placeholder for ingredients to restock."
+    },
+    "recipes": {
+      "title": "Recipe Suggestions",
+      "subtitle": "Ideas based on what's in stock.",
+      "placeholder": "Placeholder for recipe suggestions."
+    },
+    "categories": {
+      "secos": "Dry goods",
+      "condimentos": "Seasonings",
+      "dulces": "Sweets",
+      "lacteos": "Dairy",
+      "proteinas": "Proteins",
+      "verduras": "Vegetables",
+      "panificados": "Baked goods",
+      "bebidas": "Beverages",
+      "cafe": "Coffee",
+      "otros": "Other"
+    },
+    "weightUnits": {
+      "g": "g",
+      "kg": "kg",
+      "ml": "ml",
+      "l": "l",
+      "unidad": "unit"
+    }
   },
   "auth": {
     "welcome.back": "Welcome back",
@@ -124,8 +199,26 @@
     "transaction.category.placeholder": "Select a category",
     "transaction.amount": "Amount",
     "transaction.adding": "Adding...",
+    "food.name": "Ingredient name",
+    "food.name.placeholder": "e.g., Olive oil",
+    "food.category": "Category",
+    "food.category.placeholder": "Select a category",
+    "food.units": "Units",
+    "food.unitWeight": "Unit weight",
+    "food.weightUnit": "Weight unit",
+    "food.storage": "Storage location",
+    "food.status": "Status",
+    "food.totalWeight": "Total weight",
+    "food.totalWeight.helper": "Computed from units × unit weight.",
+    "food.adding": "Adding...",
     "validation.amount.required": "Amount must be greater than 0",
     "validation.date.required": "Date is required",
-    "validation.category.required": "Category is required"
+    "validation.category.required": "Category is required",
+    "validation.name.required": "Ingredient name is required",
+    "validation.units.required": "Units must be greater than 0",
+    "validation.unitWeight.required": "Unit weight must be greater than 0",
+    "validation.weightUnit.required": "Weight unit is required",
+    "validation.storage.required": "Storage location is required",
+    "validation.status.required": "Status is required"
   }
 } 

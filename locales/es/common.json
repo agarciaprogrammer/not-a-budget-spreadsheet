@@ -19,8 +19,83 @@
   "success": "Éxito",
   "nav": {
     "dashboard": "Panel de Control",
+    "food": "Despensa",
     "transactions": "Transacciones",
     "change.language": "Cambiar idioma"
+  },
+  "food": {
+    "loading": "Cargando inventario de cocina...",
+    "auth.error.title": "Error de Autenticación",
+    "access.denied.title": "Acceso Denegado",
+    "access.denied.message": "Debes iniciar sesión para ver el inventario de cocina.",
+    "inventory": {
+      "title": "Inventario de Cocina",
+      "subtitle": "Controla lo que tienes y dónde está guardado.",
+      "add": "Agregar ingrediente",
+      "add.error": "No se pudo agregar el ingrediente.",
+      "table": {
+        "ingredient": "Ingrediente",
+        "category": "Categoría",
+        "quantity": "Cantidad",
+        "unit": "Unidad",
+        "totalWeight": "Peso total",
+        "storage": "Almacenamiento",
+        "status": "Estado",
+        "actions": "Acciones"
+      },
+      "empty": {
+        "title": "Aún no hay ingredientes",
+        "description": "Agrega tu primer ingrediente para empezar el inventario."
+      },
+      "delete": {
+        "confirm": "¿Seguro que quieres eliminar este ingrediente?",
+        "error": "Error al eliminar el ingrediente"
+      },
+      "actions": {
+        "edit": "Editar",
+        "consume": "Consumir",
+        "delete": "Eliminar"
+      }
+    },
+    "storage": {
+      "fridge": "Refrigerador",
+      "freezer": "Congelador",
+      "pantry": "Despensa"
+    },
+    "status": {
+      "ok": "OK",
+      "low": "Bajo",
+      "restock": "Reponer"
+    },
+    "restock": {
+      "title": "Para Reponer",
+      "subtitle": "Ingredientes por agotarse o agotados.",
+      "placeholder": "Marcador de posición para ingredientes a reponer."
+    },
+    "recipes": {
+      "title": "Sugerencias de Recetas",
+      "subtitle": "Ideas según lo que tienes disponible.",
+      "placeholder": "Marcador de posición para sugerencias de recetas."
+    },
+    "categories": {
+      "secos": "Secos",
+      "condimentos": "Condimentos",
+      "dulces": "Dulces",
+      "lacteos": "Lacteos",
+      "proteinas": "Proteinas",
+      "verduras": "Verduras",
+      "panificados": "Panificados",
+      "bebidas": "Bebidas",
+      "cafe": "Cafe",
+      "otros": "Otros"
+    },
+    "weightUnits": {
+      "g": "g",
+      "kg": "kg",
+      "ml": "ml",
+      "l": "l",
+      "unidad": "unidad"
+    }
   },
   "auth": {
     "welcome.back": "Bienvenido de vuelta",
@@ -124,8 +199,26 @@
     "transaction.category.placeholder": "Selecciona una categoría",
     "transaction.amount": "Monto",
     "transaction.adding": "Agregando...",
+    "food.name": "Nombre del ingrediente",
+    "food.name.placeholder": "Ej: Aceite de oliva",
+    "food.category": "Categoría",
+    "food.category.placeholder": "Selecciona una categoría",
+    "food.units": "Unidades",
+    "food.unitWeight": "Peso por unidad",
+    "food.weightUnit": "Unidad de peso",
+    "food.storage": "Lugar de almacenamiento",
+    "food.status": "Estado",
+    "food.totalWeight": "Peso total",
+    "food.totalWeight.helper": "Calculado con unidades × peso por unidad.",
+    "food.adding": "Agregando...",
     "validation.amount.required": "El monto debe ser mayor a 0",
     "validation.date.required": "La fecha es requerida",
-    "validation.category.required": "La categoría es requerida"
+    "validation.category.required": "La categoría es requerida",
+    "validation.name.required": "El nombre es obligatorio",
+    "validation.units.required": "Las unidades deben ser mayores que 0",
+    "validation.unitWeight.required": "El peso por unidad debe ser mayor que 0",
+    "validation.weightUnit.required": "La unidad de peso es obligatoria",
+    "validation.storage.required": "El lugar de almacenamiento es obligatorio",
+    "validation.status.required": "El estado es obligatorio"
   }
 } 

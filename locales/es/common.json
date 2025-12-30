@@ -32,6 +32,7 @@
       "title": "Inventario de Cocina",
       "subtitle": "Controla lo que tienes y dónde está guardado.",
       "add": "Agregar ingrediente",
+      "copy": "Copiar inventario",
       "add.error": "No se pudo agregar el ingrediente.",
       "table": {
         "ingredient": "Ingrediente",
@@ -39,8 +40,10 @@
         "quantity": "Cantidad",
         "unit": "Unidad",
         "totalWeight": "Peso total",
+        "opened": "Abierto",
         "storage": "Almacenamiento",
         "status": "Estado",
+        "notes": "Notas",
         "actions": "Acciones"
       },
       "empty": {
@@ -50,6 +53,31 @@
       "delete": {
         "confirm": "¿Seguro que quieres eliminar este ingrediente?",
         "error": "Error al eliminar el ingrediente"
+      },
+      "opened": {
+        "yes": "Sí",
+        "no": "No"
+      },
+      "edit": {
+        "title": "Editar ingrediente",
+        "error": "No se pudo actualizar el ingrediente.",
+        "saving": "Guardando..."
+      },
+      "consume": {
+        "title": "Consumir ingrediente",
+        "amount": {
+          "label": "Cantidad a consumir",
+          "placeholder": "Ingresa la cantidad",
+          "error": "Ingresa una cantidad válida",
+          "exceeds": "La cantidad supera lo disponible"
+        },
+        "unit": {
+          "confirm": "¿Consumir 1 unidad de {{name}}?",
+          "last": "Es la última unidad."
+        },
+        "delete": "Consumir y eliminar",
+        "markLow": "Consumir y marcar bajo",
+        "error": "No se pudo consumir el ingrediente."
       },
       "actions": {
         "edit": "Editar",
@@ -95,6 +123,16 @@
       "ml": "ml",
       "l": "l",
       "unidad": "unidad"
+    },
+    "form": {
+      "opened": "Abierto",
+      "remaining_level": "Cuánto queda",
+      "remaining_level.placeholder": "Seleccionar nivel",
+      "remaining_level.full": "Completo",
+      "remaining_level.half": "Mitad",
+      "remaining_level.low": "Poco",
+      "notes": "Notas",
+      "notes.placeholder": "Ej: Recién abierto, Queda poco, Usar para fideos"
     }
   },
   "auth": {

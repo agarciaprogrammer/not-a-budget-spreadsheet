@@ -10,6 +10,9 @@ export interface Ingredient {
   weight_unit: 'g' | 'kg' | 'ml' | 'l' | 'unidad'
   storage: 'fridge' | 'freezer' | 'pantry'
   status: 'ok' | 'low' | 'restock'
+  opened?: boolean
+  remaining_level?: 'full' | 'half' | 'low'
+  notes?: string
   created_at: string
 }
 
@@ -21,6 +24,9 @@ export interface IngredientFormData {
   weight_unit: 'g' | 'kg' | 'ml' | 'l' | 'unidad'
   storage: 'fridge' | 'freezer' | 'pantry'
   status: 'ok' | 'low' | 'restock'
+  opened?: boolean
+  remaining_level?: 'full' | 'half' | 'low'
+  notes?: string
 }
 
 export class IngredientService {
@@ -52,11 +58,79 @@ export class IngredientService {
         name: ingredientData.name,
         category: ingredientData.category,
         units: Number(ingredientData.units),
-        unit_weight: Number(ingredientData.unit_weight),
+        unit_weight: ingredientData.weight_unit === 'unidad'
+          ? null
+          : Number(ingredientData.unit_weight),
         weight_unit: ingredientData.weight_unit,
         storage: ingredientData.storage,
-        status: ingredientData.status
+        status: ingredientData.status,
+        ...(ingredientData.opened !== undefined ? { opened: ingredientData.opened } : {}),
+        ...(ingredientData.remaining_level !== undefined ? { remaining_level: ingredientData.remaining_level } : {}),
+        ...(ingredientData.notes !== undefined ? { notes: ingredientData.notes } : {})
       })
+      .select()
+      .single()
+
+    if (error) throw error
+    return data as Ingredient
+  }
+
+  async updateIngredient(id: string, ingredientData: IngredientFormData): Promise<Ingredient> {
+    const supabase = this.getSupabaseClient()
+    const { data, error } = await supabase
+      .from('food')
+      .update({
+        name: ingredientData.name,
+        category: ingredientData.category,
+        units: Number(ingredientData.units),
+        unit_weight: ingredientData.weight_unit === 'unidad'
+          ? null
+          : Number(ingredientData.unit_weight),
+        weight_unit: ingredientData.weight_unit,
+        storage: ingredientData.storage,
+        status: ingredientData.status,
+        opened: ingredientData.opened ?? false,
+        remaining_level: ingredientData.remaining_level ?? null,
+        notes: ingredientData.notes ?? null
+      })
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) throw error
+    return data as Ingredient
+  }
+
+  async consumeIngredient(
+    ingredient: Ingredient,
+    options?: { amount?: number; remaining_level?: Ingredient['remaining_level'] }
+  ): Promise<Ingredient> {
+    const supabase = this.getSupabaseClient()
+    const isUnit = ingredient.weight_unit === 'unidad'
+    const currentUnits = Number(ingredient.units) || 0
+    const currentUnitWeight = Number(ingredient.unit_weight) || 0
+
+    const nextUnits = isUnit ? Math.max(0, currentUnits - 1) : currentUnits
+    const nextUnitWeight = isUnit
+      ? currentUnitWeight
+      : Math.max(0, currentUnitWeight - Number(options?.amount || 0))
+
+    const updatePayload: Record<string, unknown> = {
+      units: nextUnits
+    }
+
+    if (!isUnit) {
+      updatePayload.unit_weight = nextUnitWeight
+    }
+
+    if (options?.remaining_level !== undefined) {
+      updatePayload.remaining_level = options.remaining_level
+    }
+
+    const { data, error } = await supabase
+      .from('food')
+      .update(updatePayload)
+      .eq('id', ingredient.id)
       .select()
       .single()
 

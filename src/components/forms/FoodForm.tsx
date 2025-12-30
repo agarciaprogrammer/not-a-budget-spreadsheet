@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { Input } from '@/components/ui/Input'
 import { Select, type SelectOption } from '@/components/ui/Select'
 import { Button } from '@/components/ui/Button'
@@ -14,6 +14,9 @@ export interface FoodFormData {
   weight_unit: 'g' | 'kg' | 'ml' | 'l' | 'unidad'
   storage: 'fridge' | 'freezer' | 'pantry'
   status: 'ok' | 'low' | 'restock'
+  opened?: boolean
+  remaining_level?: 'full' | 'half' | 'low'
+  notes?: string
 }
 
 interface FoodFormProps {
@@ -21,13 +24,17 @@ interface FoodFormProps {
   onCancel: () => void
   loading?: boolean
   initialData?: Partial<FoodFormData>
+  submitLabel?: string
+  loadingLabel?: string
 }
 
 export function FoodForm({
   onSubmit,
   onCancel,
   loading = false,
-  initialData
+  initialData,
+  submitLabel,
+  loadingLabel
 }: FoodFormProps) {
   const { t } = useTranslation()
   const [formData, setFormData] = useState<FoodFormData>({
@@ -38,15 +45,12 @@ export function FoodForm({
     weight_unit: 'g',
     storage: 'fridge',
     status: 'ok',
+    opened: false,
+    remaining_level: undefined,
+    notes: undefined,
     ...initialData
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
-
-  const totalWeight = useMemo(() => {
-    const units = Number(formData.units) || 0
-    const unitWeight = Number(formData.unit_weight) || 0
-    return units * unitWeight
-  }, [formData.units, formData.unit_weight])
 
   const categoryOptions: SelectOption[] = [
     { value: 'secos', label: t('food.categories.secos') },
@@ -81,8 +85,15 @@ export function FoodForm({
     { value: 'restock', label: t('food.status.restock') }
   ]
 
+  const remainingLevelOptions: SelectOption[] = [
+    { value: 'full', label: t('food.form.remaining_level.full') },
+    { value: 'half', label: t('food.form.remaining_level.half') },
+    { value: 'low', label: t('food.form.remaining_level.low') }
+  ]
+
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {}
+    const isUnitWeightRequired = formData.weight_unit !== 'unidad'
 
     if (!formData.name.trim()) {
       newErrors.name = t('form.validation.name.required')
@@ -96,7 +107,7 @@ export function FoodForm({
       newErrors.units = t('form.validation.units.required')
     }
 
-    if (!formData.unit_weight || formData.unit_weight <= 0) {
+    if (isUnitWeightRequired && (!formData.unit_weight || formData.unit_weight <= 0)) {
       newErrors.unit_weight = t('form.validation.unitWeight.required')
     }
 
@@ -162,16 +173,18 @@ export function FoodForm({
           required
         />
 
-        <Input
-          label={t('form.food.unitWeight')}
-          type="number"
-          min="0"
-          step="0.01"
-          value={formData.unit_weight || ''}
-          onChange={(e) => setFormData(prev => ({ ...prev, unit_weight: parseFloat(e.target.value) || 0 }))}
-          error={errors.unit_weight}
-          required
-        />
+        {formData.weight_unit !== 'unidad' && (
+          <Input
+            label={t('form.food.unitWeight')}
+            type="number"
+            min="0"
+            step="0.01"
+            value={formData.unit_weight || ''}
+            onChange={(e) => setFormData(prev => ({ ...prev, unit_weight: parseFloat(e.target.value) || 0 }))}
+            error={errors.unit_weight}
+            required
+          />
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -179,7 +192,14 @@ export function FoodForm({
           label={t('form.food.weightUnit')}
           options={weightUnitOptions}
           value={formData.weight_unit}
-          onChange={(e) => setFormData(prev => ({ ...prev, weight_unit: e.target.value as FoodFormData['weight_unit'] }))}
+          onChange={(e) => setFormData(prev => {
+            const nextWeightUnit = e.target.value as FoodFormData['weight_unit']
+            return {
+              ...prev,
+              weight_unit: nextWeightUnit,
+              unit_weight: nextWeightUnit === 'unidad' ? 0 : prev.unit_weight
+            }
+          })}
           error={errors.weight_unit}
           required
         />
@@ -203,12 +223,45 @@ export function FoodForm({
         required
       />
 
-      <div className="rounded-md border border-gray-200 bg-gray-50 p-3 text-sm text-gray-700">
-        <div className="font-medium text-gray-900">{t('form.food.totalWeight')}</div>
-        <div className="mt-1 text-base font-semibold text-gray-900">
-          {totalWeight > 0 ? totalWeight.toFixed(2) : '0.00'} {formData.weight_unit || 'g'}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="flex items-center gap-2 pt-2">
+          <input
+            id="food-opened"
+            type="checkbox"
+            checked={Boolean(formData.opened)}
+            onChange={(e) => setFormData(prev => ({ ...prev, opened: e.target.checked }))}
+            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+          />
+          <label htmlFor="food-opened" className="text-sm font-medium text-gray-700">
+            {t('food.form.opened')}
+          </label>
         </div>
-        <div className="text-xs text-gray-500">{t('form.food.totalWeight.helper')}</div>
+
+        <Select
+          label={t('food.form.remaining_level')}
+          options={remainingLevelOptions}
+          value={formData.remaining_level || ''}
+          onChange={(e) => setFormData(prev => ({
+            ...prev,
+            remaining_level: e.target.value ? (e.target.value as FoodFormData['remaining_level']) : undefined
+          }))}
+          placeholder={t('food.form.remaining_level.placeholder')}
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          {t('food.form.notes')}
+        </label>
+        <textarea
+          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-600 min-h-[96px] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          placeholder={t('food.form.notes.placeholder')}
+          value={formData.notes || ''}
+          onChange={(e) => setFormData(prev => ({
+            ...prev,
+            notes: e.target.value ? e.target.value : undefined
+          }))}
+        />
       </div>
 
       <div className="flex space-x-3 pt-4">
@@ -225,7 +278,7 @@ export function FoodForm({
           loading={loading}
           className="flex-1"
         >
-          {loading ? t('form.food.adding') : t('add')}
+          {loading ? (loadingLabel || t('form.food.adding')) : (submitLabel || t('add'))}
         </Button>
       </div>
     </form>

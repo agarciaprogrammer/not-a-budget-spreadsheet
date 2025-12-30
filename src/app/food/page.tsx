@@ -11,6 +11,8 @@ import IngredientsTable from '@/components/food/IngredientsTable'
 import AddIngredientModal from '@/components/food/AddIngredientModal'
 import { FoodDateProvider } from '@/components/providers/FoodDateProvider'
 import { useTranslation } from '@/hooks/useTranslation'
+import { useIngredients } from '@/hooks/useIngredients'
+import { type Ingredient } from '@/lib/services/ingredient.service'
 
 export default function FoodPage() {
   const { user, loading, error } = useAuth()
@@ -109,7 +111,33 @@ function InventoryPanel({
   onAddIngredient: () => void
   onRefresh: () => void
 }) {
+  const { user } = useAuth()
   const { t } = useTranslation()
+  const { ingredients } = useIngredients(user?.id || '', refreshTrigger)
+
+  const formatIngredientLine = (ingredient: Ingredient) => {
+    const quantity = ingredient.weight_unit === 'unidad'
+      ? ingredient.units
+      : ingredient.unit_weight
+    const openedLabel = ingredient.opened
+      ? t('food.inventory.opened.yes')
+      : t('food.inventory.opened.no')
+    const unitLabel = t(`food.weightUnits.${ingredient.weight_unit}`)
+    const storageLabel = t(`food.storage.${ingredient.storage}`)
+    const notes = ingredient.notes ? ingredient.notes : '-'
+
+    return `- ${ingredient.name} | ${ingredient.category} | ${quantity} ${unitLabel} | ${openedLabel} | ${storageLabel} | ${notes}`
+  }
+
+  const handleCopyInventory = async () => {
+    const text = ingredients.map(formatIngredientLine).join('\n')
+
+    try {
+      await navigator.clipboard.writeText(text)
+    } catch (error) {
+      console.error('Error copying inventory:', error)
+    }
+  }
   
   return (
     <Card>
@@ -119,9 +147,14 @@ function InventoryPanel({
             <h2 className="text-xl font-semibold text-gray-900">{t('food.inventory.title')}</h2>
             <p className="text-sm text-gray-500">{t('food.inventory.subtitle')}</p>
           </div>
-          <Button onClick={onAddIngredient}>
-            + {t('food.inventory.add')}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="secondary" onClick={handleCopyInventory}>
+              {t('food.inventory.copy')}
+            </Button>
+            <Button onClick={onAddIngredient}>
+              + {t('food.inventory.add')}
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent>

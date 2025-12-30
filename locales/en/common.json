@@ -32,6 +32,7 @@
       "title": "Kitchen Inventory",
       "subtitle": "Track what you have on hand and where it is stored.",
       "add": "Add Ingredient",
+      "copy": "Copy inventory",
       "add.error": "Unable to add ingredient.",
       "table": {
         "ingredient": "Ingredient",
@@ -39,8 +40,10 @@
         "quantity": "Quantity",
         "unit": "Unit",
         "totalWeight": "Total weight",
+        "opened": "Opened",
         "storage": "Storage",
         "status": "Status",
+        "notes": "Notes",
         "actions": "Actions"
       },
       "empty": {
@@ -50,6 +53,31 @@
       "delete": {
         "confirm": "Are you sure you want to delete this ingredient?",
         "error": "Error deleting ingredient"
+      },
+      "opened": {
+        "yes": "Yes",
+        "no": "No"
+      },
+      "edit": {
+        "title": "Edit ingredient",
+        "error": "Unable to update ingredient.",
+        "saving": "Saving..."
+      },
+      "consume": {
+        "title": "Consume ingredient",
+        "amount": {
+          "label": "Amount to consume",
+          "placeholder": "Enter amount",
+          "error": "Enter a valid amount",
+          "exceeds": "Amount exceeds available quantity"
+        },
+        "unit": {
+          "confirm": "Consume 1 unit of {{name}}?",
+          "last": "This is the last unit."
+        },
+        "delete": "Consume & delete",
+        "markLow": "Consume & mark low",
+        "error": "Unable to consume ingredient."
       },
       "actions": {
         "edit": "Edit",
@@ -95,6 +123,16 @@
       "ml": "ml",
       "l": "l",
       "unidad": "unit"
+    },
+    "form": {
+      "opened": "Opened",
+      "remaining_level": "Remaining level",
+      "remaining_level.placeholder": "Select level",
+      "remaining_level.full": "Full",
+      "remaining_level.half": "Half",
+      "remaining_level.low": "Low",
+      "notes": "Notes",
+      "notes.placeholder": "e.g., Just opened, Running low, Use for pasta"
     }
   },
   "auth": {

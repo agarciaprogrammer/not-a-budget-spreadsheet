@@ -12,6 +12,7 @@ import { Pagination } from '@/components/ui/Pagination'
 import { formatCurrency, formatDate } from '@/lib/utils/formatters'
 import { useTranslation } from '@/hooks/useTranslation'
 import { useCategoryTranslation } from '@/hooks/useCategoryTranslation'
+import EditTransactionModal from '@/components/transactions/EditTransactionModal'
 
 interface TransactionTableProps {
   refreshTrigger: number
@@ -32,6 +33,8 @@ export default function TransactionTable({ refreshTrigger, onAddTransaction, onR
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null)
 
   const loadTransactions = useCallback(async () => {
     if (!user) return
@@ -71,6 +74,16 @@ export default function TransactionTable({ refreshTrigger, onAddTransaction, onR
 
   const handlePageChange = (newPage: number) => {
     setPage(newPage)
+  }
+
+  const handleEditTransaction = (transaction: Transaction) => {
+    setSelectedTransaction(transaction)
+    setIsEditModalOpen(true)
+  }
+
+  const handleCloseEditModal = () => {
+    setIsEditModalOpen(false)
+    setSelectedTransaction(null)
   }
 
   const deleteTransaction = async (transactionId: string) => {
@@ -158,15 +171,26 @@ export default function TransactionTable({ refreshTrigger, onAddTransaction, onR
                   {formatCurrency(transaction.amount)}
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-900">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => deleteTransaction(transaction.id)}
-                    className="text-red-600 hover:text-red-900"
-                    title={t('transactions.delete.title')}
-                  >
-                    🗑️
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEditTransaction(transaction)}
+                      className="text-blue-600 hover:text-blue-900"
+                      title={t('transactions.edit.title')}
+                    >
+                      {t('edit')}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => deleteTransaction(transaction.id)}
+                      className="text-red-600 hover:text-red-900"
+                      title={t('transactions.delete.title')}
+                    >
+                      🗑️
+                    </Button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -182,6 +206,13 @@ export default function TransactionTable({ refreshTrigger, onAddTransaction, onR
         pageSize={pageSize}
         onPageChange={handlePageChange}
         className="mt-6"
+      />
+
+      <EditTransactionModal
+        isOpen={isEditModalOpen}
+        onClose={handleCloseEditModal}
+        onTransactionUpdated={onRefresh || loadTransactions}
+        transaction={selectedTransaction}
       />
     </div>
   )

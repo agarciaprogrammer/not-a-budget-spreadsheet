@@ -23,13 +23,17 @@ interface TransactionFormProps {
   onCancel: () => void
   loading?: boolean
   initialData?: Partial<TransactionFormData>
+  submitLabel?: string
+  loadingLabel?: string
 }
 
 export function TransactionForm({ 
   onSubmit, 
   onCancel, 
   loading = false,
-  initialData 
+  initialData,
+  submitLabel,
+  loadingLabel
 }: TransactionFormProps) {
   const { user } = useAuth()
   const [categories, setCategories] = useState<Category[]>([])
@@ -192,7 +196,7 @@ export function TransactionForm({
           loading={loading}
           className="flex-1"
         >
-          {loading ? t('form.transaction.adding') : t('add')}
+          {loading ? (loadingLabel ?? t('form.transaction.adding')) : (submitLabel ?? t('add'))}
         </Button>
       </div>
     </form>

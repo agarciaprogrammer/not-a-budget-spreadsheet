@@ -166,6 +166,34 @@ export class TransactionService {
     if (error) throw error
   }
 
+  async updateTransaction(
+    transactionId: string,
+    userId: string,
+    transactionData: Partial<TransactionFormData>
+  ): Promise<Transaction> {
+    const validatedData = transactionSchema.parse({
+      ...transactionData,
+      amount: Number(transactionData.amount),
+      date: transactionData.date,
+    })
+    const supabase = this.getSupabaseClient()
+    const { data, error } = await supabase
+      .from('transactions')
+      .update({
+        category_id: validatedData.category_id,
+        type: validatedData.type,
+        amount: validatedData.amount,
+        date: validatedData.date,
+        description: validatedData.description || null,
+      })
+      .eq('id', transactionId)
+      .eq('user_id', userId)
+      .select()
+      .single()
+    if (error) throw error
+    return data as Transaction
+  }
+
   async getUserCategories(userId: string): Promise<Category[]> {
     const supabase = this.getSupabaseClient()
     const { data, error } = await supabase

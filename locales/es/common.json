@@ -160,19 +160,21 @@
     "recent.transactions": "Transacciones Recientes",
     "total.income": "Ingresos Totales",
     "total.expenses": "Gastos Totales",
+    "total.fixed.expenses": "Gastos Fijos",
+    "total.variable.expenses": "Gastos Variables",
     "net.balance": "Balance Neto",
     "error": "Error",
     "current.month": "Mes Actual",
-    "monthly.limit": "Límite Mensual",
+    "monthly.limit": "Límite Mensual (Variables)",
     "limit.set": "Establecer Límite",
     "limit.edit": "Editar",
     "limit.set.to": "Establecido en",
-    "limit.set.message": "Establece un límite de gasto mensual para rastrear tu presupuesto.",
+    "limit.set.message": "Establece un límite de gasto mensual para variables y rastrea tu presupuesto.",
     "limit.remaining": "Te quedan {{amount}} este mes.",
     "limit.ignored": "🎉 ¡Felicitaciones, has ignorado oficialmente tu límite!",
     "limit.edit.title": "Editar Límite Mensual",
     "limit.set.title": "Establecer Límite Mensual",
-    "limit.monthly.spending": "Límite de Gasto Mensual ($)",
+    "limit.monthly.spending": "Límite de Gasto Variable Mensual ($)",
     "limit.enter.amount": "Ingresa el monto",
     "limit.saving": "Guardando...",
     "charts": {
@@ -182,25 +184,25 @@
         "amount": "Monto",
         "percentage": "Porcentaje",
         "income": "Ingresos",
-        "expense": "Gastos"
+        "expense": "Gastos Variables"
       },
       "legend": {
         "income": "Ingresos",
-        "expense": "Gastos"
+        "expense": "Gastos Variables"
       },
       "category": {
-        "breakdown": "Desglose por Categorías",
+        "breakdown": "Gastos Variables por Categoría",
         "loading": "Cargando datos de categorías...",
-        "no.expenses": "Sin gastos este mes"
+        "no.expenses": "Sin gastos variables este mes"
       },
       "income.expense": {
-        "title": "Ingresos vs Gastos en el Tiempo",
+        "title": "Ingresos vs Gastos Variables en el Tiempo",
         "subtitle": "Últimos {{months}} meses",
         "no.data": "No hay historial de transacciones disponible"
       },
       "weekly.spending": {
-        "title": "Gastos Semanales",
-        "no.data": "No hay datos de gastos disponibles para las últimas 4 semanas"
+        "title": "Gastos Variables Semanales",
+        "no.data": "No hay datos de gastos variables disponibles para las últimas 4 semanas"
       }
     }
   },
@@ -240,6 +242,9 @@
     "transaction.category.placeholder": "Selecciona una categoría",
     "transaction.amount": "Monto",
     "transaction.adding": "Agregando...",
+    "transaction.expenseKind": "Tipo de gasto",
+    "transaction.expenseKind.fixed": "Fijo",
+    "transaction.expenseKind.variable": "Variable",
     "food.name": "Nombre del ingrediente",
     "food.name.placeholder": "Ej: Aceite de oliva",
     "food.category": "Categoría",
@@ -255,6 +260,7 @@
     "validation.amount.required": "El monto debe ser mayor a 0",
     "validation.date.required": "La fecha es requerida",
     "validation.category.required": "La categoría es requerida",
+    "validation.expenseKind.required": "Selecciona si es gasto fijo o variable",
     "validation.name.required": "El nombre es obligatorio",
     "validation.units.required": "Las unidades deben ser mayores que 0",
     "validation.unitWeight.required": "El peso por unidad debe ser mayor que 0",

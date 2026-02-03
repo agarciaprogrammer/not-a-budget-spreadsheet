@@ -55,6 +55,7 @@ export default function EditTransactionModal({
         date: transaction.date,
         category_id: transaction.category_id,
         description: transaction.description || '',
+        expense_kind: transaction.expense_kind ?? undefined,
       }
     : undefined
 

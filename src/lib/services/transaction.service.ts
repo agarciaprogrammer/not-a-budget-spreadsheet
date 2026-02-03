@@ -2,6 +2,7 @@ import { createBrowserSupabaseClient } from '@/lib/supabase/client'
 import { budgetService } from './budget.service'
 import { transactionSchema, type TransactionFormData } from '@/validations/transaction'
 import { formatDateToYYYYMMDD } from '@/lib/utils/date-utils'
+import { EXPENSE_KIND_REQUIRED_FROM, EXPENSE_KINDS } from '@/lib/constants'
 
 const CATEGORY_COLORS = [
   '#3B82F6', // blue-500
@@ -21,6 +22,8 @@ interface TransactionWithCategoryRow {
   amount: string | number
   category_id: string
   category: { name: string } | null
+  date: string
+  expense_kind: 'fixed' | 'variable' | null
 }
 
 export interface Transaction {
@@ -33,6 +36,7 @@ export interface Transaction {
   date: string
   description: string | null
   created_at: string
+  expense_kind?: 'fixed' | 'variable' | null
   // categories returns as an array from Supabase join
   categories?: { name: string }[]
 }
@@ -40,7 +44,17 @@ export interface Transaction {
 export interface Category {
   id: string
   name: string
+  expense_kind?: 'fixed' | 'variable' | null
 }
+
+const isLegacyExpense = (date: string) => date < EXPENSE_KIND_REQUIRED_FROM
+
+const isVariableExpense = (date: string, expenseKind: string | null | undefined) =>
+  isLegacyExpense(date) || expenseKind === EXPENSE_KINDS.VARIABLE
+
+const isFixedExpense = (date: string, expenseKind: string | null | undefined) =>
+  !isLegacyExpense(date) && expenseKind === EXPENSE_KINDS.FIXED
+
 export class TransactionService {
   private getSupabaseClient() {
     if (typeof window === 'undefined') {
@@ -70,6 +84,7 @@ export class TransactionService {
         amount: validatedData.amount,
         date: validatedData.date,
         description: validatedData.description || null,
+        expense_kind: validatedData.type === 'expense' ? validatedData.expense_kind ?? null : null,
       })
       .select()
       .single()
@@ -114,6 +129,7 @@ export class TransactionService {
         amount,
         date,
         description,
+        expense_kind,
         created_at,
         categories!inner (
           name
@@ -185,6 +201,7 @@ export class TransactionService {
         amount: validatedData.amount,
         date: validatedData.date,
         description: validatedData.description || null,
+        expense_kind: validatedData.type === 'expense' ? validatedData.expense_kind ?? null : null,
       })
       .eq('id', transactionId)
       .eq('user_id', userId)
@@ -198,33 +215,39 @@ export class TransactionService {
     const supabase = this.getSupabaseClient()
     const { data, error } = await supabase
       .from('categories')
-      .select('id, name')
+      .select('id, name, expense_kind')
       .eq('user_id', userId)
+      .eq('is_active', true)
       .order('name')
     if (error) throw error
     return data || []
   }
 
-  async getTransactionSummary(userId: string, dateRange?: { startDate: string; endDate: string }): Promise<{
+  async getTransactionSummary(
+    userId: string,
+    options?: { dateRange?: { startDate: string; endDate: string } }
+  ): Promise<{
     totalIncome: number
+    totalFixedExpenses: number
+    totalVariableExpenses: number
     totalExpenses: number
     netBalance: number
   }> {
     const budgetId = await budgetService.getUserBudgetId(userId)
     if (!budgetId) {
-      return { totalIncome: 0, totalExpenses: 0, netBalance: 0 }
+      return { totalIncome: 0, totalFixedExpenses: 0, totalVariableExpenses: 0, totalExpenses: 0, netBalance: 0 }
     }
     const supabase = this.getSupabaseClient()
     let query = supabase
       .from('transactions')
-      .select('type, amount')
+      .select('type, amount, date, expense_kind')
       .eq('budget_id', budgetId)
       .eq('user_id', userId)
     
-    if (dateRange) {
+    if (options?.dateRange) {
       query = query
-        .gte('date', dateRange.startDate)
-        .lte('date', dateRange.endDate)
+        .gte('date', options.dateRange.startDate)
+        .lte('date', options.dateRange.endDate)
     }
     
     const { data: transactions, error } = await query
@@ -232,12 +255,18 @@ export class TransactionService {
     const totalIncome = (transactions || [])
       .filter(t => t.type === 'income')
       .reduce((sum, transaction) => sum + Number(transaction.amount), 0)
-    const totalExpenses = (transactions || [])
-      .filter(t => t.type === 'expense')
+    const totalFixedExpenses = (transactions || [])
+      .filter(t => t.type === 'expense' && isFixedExpense(t.date, t.expense_kind))
       .reduce((sum, transaction) => sum + Number(transaction.amount), 0)
+    const totalVariableExpenses = (transactions || [])
+      .filter(t => t.type === 'expense' && isVariableExpense(t.date, t.expense_kind))
+      .reduce((sum, transaction) => sum + Number(transaction.amount), 0)
+    const totalExpenses = totalFixedExpenses + totalVariableExpenses
     const netBalance = totalIncome - totalExpenses
     return {
       totalIncome,
+      totalFixedExpenses,
+      totalVariableExpenses,
       totalExpenses,
       netBalance
     }
@@ -273,6 +302,8 @@ export class TransactionService {
       .select(`
         amount,
         category_id,
+        date,
+        expense_kind,
         category:categories (
           name
         )
@@ -287,12 +318,15 @@ export class TransactionService {
   
     // Cast data to the correct type array
     const categoryData = (data as unknown as TransactionWithCategoryRow[]) || []
+    const filteredCategoryData = categoryData.filter((tx) =>
+      isVariableExpense(tx.date, tx.expense_kind)
+    )
   
     // Group and sum by category
     const categoryTotals = new Map<string, number>()
     let totalAmount = 0
   
-    categoryData.forEach((tx: TransactionWithCategoryRow) => {
+    filteredCategoryData.forEach((tx: TransactionWithCategoryRow) => {
       const categoryName = tx.category?.name ?? 'Unknown'
       const amount = Number(tx.amount)
       categoryTotals.set(
@@ -355,7 +389,7 @@ export class TransactionService {
 
     const { data: transactions, error } = await supabase
       .from('transactions')
-      .select('type, amount, date')
+      .select('type, amount, date, expense_kind')
       .eq('budget_id', budgetId)
       .eq('user_id', userId)
       .gte('date', formatDateToYYYYMMDD(startDate))
@@ -380,7 +414,7 @@ export class TransactionService {
       const monthData = monthlyData.get(monthKey)!
       if (transaction.type === 'income') {
         monthData.income += Number(transaction.amount)
-      } else {
+      } else if (isVariableExpense(transaction.date, transaction.expense_kind)) {
         monthData.expense += Number(transaction.amount)
       }
     })
@@ -408,7 +442,7 @@ export class TransactionService {
   
     const { data: transactions, error } = await supabase
       .from('transactions')
-      .select('amount, date')
+      .select('amount, date, expense_kind')
       .eq('budget_id', budgetId)
       .eq('user_id', userId)
       .eq('type', 'expense')
@@ -420,6 +454,9 @@ export class TransactionService {
     // Group by date
     const dateTotals = new Map<string, number>()
     transactions?.forEach(transaction => {
+      if (!isVariableExpense(transaction.date, transaction.expense_kind)) {
+        return
+      }
       const currentTotal = dateTotals.get(transaction.date) || 0
       dateTotals.set(transaction.date, currentTotal + Number(transaction.amount))
     })
@@ -462,7 +499,7 @@ export class TransactionService {
     // Fetch all expenses in the date range
     const { data: transactions, error } = await supabase
       .from('transactions')
-      .select('amount, date')
+      .select('amount, date, expense_kind')
       .eq('budget_id', budgetId)
       .eq('user_id', userId)
       .eq('type', 'expense')
@@ -475,6 +512,9 @@ export class TransactionService {
     const weeklyTotals = new Map<string, number>()
     
     transactions?.forEach(transaction => {
+      if (!isVariableExpense(transaction.date, transaction.expense_kind)) {
+        return
+      }
       // Parse the date and get the start of the week (Sunday)
       const [year, month, day] = transaction.date.split('-').map(Number)
       const date = new Date(year, month - 1, day) // month is 0-indexed

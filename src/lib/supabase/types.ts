@@ -27,18 +27,21 @@ export type Database = {
           name: string | null
           owner_id: string
           created_at: string
+          monthly_limit: number | null
         }
         Insert: {
           id?: string
           name?: string | null
           owner_id: string
           created_at?: string
+          monthly_limit?: number | null
         }
         Update: {
           id?: string
           name?: string | null
           owner_id?: string
           created_at?: string
+          monthly_limit?: number | null
         }
       }
       budget_users: {
@@ -67,17 +70,49 @@ export type Database = {
           name: string
           user_id: string
           created_at: string
+          expense_kind: 'fixed' | 'variable' | null
+          is_active: boolean
         }
         Insert: {
           id?: string
           name: string
           user_id: string
           created_at?: string
+          expense_kind?: 'fixed' | 'variable' | null
+          is_active?: boolean
         }
         Update: {
           id?: string
           name?: string
           user_id?: string
+          created_at?: string
+          expense_kind?: 'fixed' | 'variable' | null
+          is_active?: boolean
+        }
+      }
+      monthly_limits: {
+        Row: {
+          id: string
+          budget_id: string
+          year: number
+          month: number
+          amount_limit: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          budget_id: string
+          year: number
+          month: number
+          amount_limit: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          budget_id?: string
+          year?: number
+          month?: number
+          amount_limit?: number
           created_at?: string
         }
       }
@@ -92,6 +127,7 @@ export type Database = {
           date: string
           description: string | null
           created_at: string
+          expense_kind: 'fixed' | 'variable' | null
         }
         Insert: {
           id?: string
@@ -103,6 +139,7 @@ export type Database = {
           date: string
           description?: string | null
           created_at?: string
+          expense_kind?: 'fixed' | 'variable' | null
         }
         Update: {
           id?: string
@@ -114,6 +151,7 @@ export type Database = {
           date?: string
           description?: string | null
           created_at?: string
+          expense_kind?: 'fixed' | 'variable' | null
         }
       }
     }

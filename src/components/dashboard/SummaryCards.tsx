@@ -21,8 +21,8 @@ export default function SummaryCards({ refreshTrigger }: SummaryCardsProps) {
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-        {[1, 2, 3].map((i) => (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {[1, 2, 3, 4].map((i) => (
           <div key={i} className="bg-white rounded-lg shadow p-6 animate-pulse">
             <div className="flex items-center">
               <div className="p-2 bg-gray-200 rounded-lg w-12 h-12"></div>
@@ -39,8 +39,8 @@ export default function SummaryCards({ refreshTrigger }: SummaryCardsProps) {
 
   if (error) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        {[1, 2, 3].map((i) => (
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        {[1, 2, 3, 4].map((i) => (
           <div key={i} className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center">
               <div className="p-2 bg-gray-100 rounded-lg">
@@ -58,7 +58,7 @@ export default function SummaryCards({ refreshTrigger }: SummaryCardsProps) {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
       {/* Total Income Card */}
       <div className="bg-white rounded-lg shadow p-6 border-l-4 border-green-500">
         <div className="flex items-center">
@@ -74,16 +74,31 @@ export default function SummaryCards({ refreshTrigger }: SummaryCardsProps) {
         </div>
       </div>
 
-      {/* Total Expenses Card */}
+      {/* Fixed Expenses Card */}
+      <div className="bg-white rounded-lg shadow p-6 border-l-4 border-amber-500">
+        <div className="flex items-center">
+          <div className="p-2 bg-amber-100 rounded-lg">
+            <span className="text-2xl">🧾</span>
+          </div>
+          <div className="ml-4">
+            <p className="text-sm font-medium text-gray-600">{t('dashboard.total.fixed.expenses')}</p>
+            <p className="text-2xl font-semibold text-amber-600">
+              {formatCurrency(summaryData.totalFixedExpenses)}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Variable Expenses Card */}
       <div className="bg-white rounded-lg shadow p-6 border-l-4 border-red-500">
         <div className="flex items-center">
           <div className="p-2 bg-red-100 rounded-lg">
             <span className="text-2xl">💸</span>
           </div>
           <div className="ml-4">
-            <p className="text-sm font-medium text-gray-600">{t('dashboard.total.expenses')}</p>
+            <p className="text-sm font-medium text-gray-600">{t('dashboard.total.variable.expenses')}</p>
             <p className="text-2xl font-semibold text-red-600">
-              {formatCurrency(summaryData.totalExpenses)}
+              {formatCurrency(summaryData.totalVariableExpenses)}
             </p>
           </div>
         </div>

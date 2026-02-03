@@ -160,19 +160,21 @@
     "recent.transactions": "Recent Transactions",
     "total.income": "Total Income",
     "total.expenses": "Total Expenses",
+    "total.fixed.expenses": "Fixed Expenses",
+    "total.variable.expenses": "Variable Expenses",
     "net.balance": "Net Balance",
     "error": "Error",
     "current.month": "Current Month",
-    "monthly.limit": "Monthly Limit",
+    "monthly.limit": "Monthly Limit (Variable)",
     "limit.set": "Set Limit",
     "limit.edit": "Edit",
     "limit.set.to": "Set to",
-    "limit.set.message": "Set a monthly spending limit to track your budget.",
-    "limit.remaining": "You have {{amount}} remaining this month.",
+    "limit.set.message": "Set a monthly variable spending limit to track your budget.",
+    "limit.remaining": "You have {{amount}} left this month.",
     "limit.ignored": "🎉 Congratulations, you've officially ignored your limit!",
     "limit.edit.title": "Edit Monthly Limit",
     "limit.set.title": "Set Monthly Limit",
-    "limit.monthly.spending": "Monthly Spending Limit ($)",
+    "limit.monthly.spending": "Monthly Variable Spending Limit ($)",
     "limit.enter.amount": "Enter amount",
     "limit.saving": "Saving...",
     "charts": {
@@ -182,25 +184,25 @@
         "amount": "Amount",
         "percentage": "Percentage",
         "income": "Income",
-        "expense": "Expense"
+        "expense": "Variable Expenses"
       },
       "legend": {
         "income": "Income",
-        "expense": "Expense"
+        "expense": "Variable Expenses"
       },
       "category": {
-        "breakdown": "Category Breakdown",
+        "breakdown": "Variable Expenses by Category",
         "loading": "Loading category data...",
-        "no.expenses": "No expenses this month"
+        "no.expenses": "No variable expenses this month"
       },
       "income.expense": {
-        "title": "Income vs Expense Over Time",
+        "title": "Income vs Variable Expenses Over Time",
         "subtitle": "Last {{months}} months",
         "no.data": "No transaction history available"
       },
       "weekly.spending": {
-        "title": "Weekly Spending",
-        "no.data": "No spending data available for the past 4 weeks"
+        "title": "Weekly Variable Spending",
+        "no.data": "No variable spending data available for the past 4 weeks"
       }
     }
   },
@@ -240,6 +242,9 @@
     "transaction.category.placeholder": "Select a category",
     "transaction.amount": "Amount",
     "transaction.adding": "Adding...",
+    "transaction.expenseKind": "Expense type",
+    "transaction.expenseKind.fixed": "Fixed",
+    "transaction.expenseKind.variable": "Variable",
     "food.name": "Ingredient name",
     "food.name.placeholder": "e.g., Olive oil",
     "food.category": "Category",
@@ -255,6 +260,7 @@
     "validation.amount.required": "Amount must be greater than 0",
     "validation.date.required": "Date is required",
     "validation.category.required": "Category is required",
+    "validation.expenseKind.required": "Select whether the expense is fixed or variable",
     "validation.name.required": "Ingredient name is required",
     "validation.units.required": "Units must be greater than 0",
     "validation.unitWeight.required": "Unit weight must be greater than 0",

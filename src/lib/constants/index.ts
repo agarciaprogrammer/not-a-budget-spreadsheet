@@ -12,6 +12,11 @@ export const TRANSACTION_TYPES = {
   EXPENSE: 'expense',
 } as const
 
+export const EXPENSE_KINDS = {
+  FIXED: 'fixed',
+  VARIABLE: 'variable',
+} as const
+
 // Roles de usuario
 export const USER_ROLES = {
   OWNER: 'owner',
@@ -89,15 +94,45 @@ export const API = {
 } as const
 
 // Categorías por defecto
+export const DEFAULT_FIXED_CATEGORIES = [
+  'Expensas',
+  'Servicios - Luz',
+  'Servicios - Gas',
+  'Servicios - Agua',
+  'Internet',
+  'Teléfono móvil',
+  'Obra social / Salud',
+  'Suscripciones esenciales',
+] as const
+
+export const DEFAULT_VARIABLE_CATEGORIES = [
+  'Pedidos / Delivery',
+  'Salidas',
+  'Supermercado',
+  'Gustos personales',
+  'Libros',
+  'Tecnologia',
+  'Música',
+  'Compras para el hogar',
+  'Transporte',
+  'Compras duraderas',
+  'Regalos',
+  'Ropa',
+] as const
+
+export const DEFAULT_INCOME_CATEGORIES = [
+  'Salary',
+  'Freelance',
+  'Investment Returns',
+  'Bonus',
+  'Side Hustle',
+  'Investment',
+] as const
+
 export const DEFAULT_CATEGORIES = [
-  'Food & Dining',
-  'Transportation',
-  'Shopping',
-  'Entertainment',
-  'Bills & Utilities',
-  'Healthcare',
-  'Travel',
-  'Other',
+  ...DEFAULT_FIXED_CATEGORIES,
+  ...DEFAULT_VARIABLE_CATEGORIES,
+  ...DEFAULT_INCOME_CATEGORIES,
 ] as const
 
 // Configuración de moneda
@@ -111,4 +146,6 @@ export const CURRENCY = {
 export const DATE = {
   LOCALE: 'es-ES',
   FORMAT: 'dd/MM/yyyy',
-} as const 
+} as const
+
+export const EXPENSE_KIND_REQUIRED_FROM = '2026-02-01'

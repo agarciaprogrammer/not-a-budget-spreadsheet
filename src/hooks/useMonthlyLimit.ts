@@ -45,12 +45,14 @@ export function useMonthlyLimit(userId: string | undefined, refreshTrigger?: num
           })
           
           const summary = await transactionService.getTransactionSummary(userId, {
-            startDate: formatDateToYYYYMMDD(start),
-            endDate: formatDateToYYYYMMDD(end),
+            dateRange: {
+              startDate: formatDateToYYYYMMDD(start),
+              endDate: formatDateToYYYYMMDD(end),
+            }
           })
           
           console.log('Summary data:', summary)
-          setSpent(summary.totalExpenses)
+          setSpent(summary.totalVariableExpenses)
         }
       } catch (err) {
         console.error('Error loading monthly limit data:', err)
@@ -78,11 +80,13 @@ export function useMonthlyLimit(userId: string | undefined, refreshTrigger?: num
       const end = new Date()
       
       const summary = await transactionService.getTransactionSummary(userId, {
-        startDate: formatDateToYYYYMMDD(start),
-        endDate: formatDateToYYYYMMDD(end),
+        dateRange: {
+          startDate: formatDateToYYYYMMDD(start),
+          endDate: formatDateToYYYYMMDD(end),
+        }
       })
       
-      setSpent(summary.totalExpenses)
+      setSpent(summary.totalVariableExpenses)
     } catch (err) {
       console.error('Error updating monthly limit:', err)
       setError(err instanceof Error ? err.message : 'Failed to update monthly limit')

@@ -8,6 +8,8 @@ export function useSummaryData(refreshTrigger: number) {
   const { monthRange } = useDashboardDate()
   const [summaryData, setSummaryData] = useState({
     totalIncome: 0,
+    totalFixedExpenses: 0,
+    totalVariableExpenses: 0,
     totalExpenses: 0,
     netBalance: 0
   })
@@ -22,8 +24,10 @@ export function useSummaryData(refreshTrigger: number) {
 
     try {
       const data = await transactionService.getTransactionSummary(user.id, {
-        startDate: monthRange.startDate,
-        endDate: monthRange.endDate
+        dateRange: {
+          startDate: monthRange.startDate,
+          endDate: monthRange.endDate
+        }
       })
       setSummaryData(data)
     } catch (error) {

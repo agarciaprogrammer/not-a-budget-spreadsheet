@@ -3,6 +3,7 @@ import { createAdminSupabaseClient } from '@/lib/supabase/admin'
 import { Result, tryAsync } from '@/lib/types/result'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { User } from '@supabase/supabase-js'
+import { DEFAULT_FIXED_CATEGORIES, DEFAULT_VARIABLE_CATEGORIES, EXPENSE_KINDS } from '@/lib/constants'
 
 export interface BudgetSetupResult {
   budget_id: string
@@ -79,21 +80,18 @@ export class BudgetApiService {
    * Crea categorías por defecto para un usuario
    */
   private async createDefaultCategories(userId: string, adminSupabase: SupabaseClient): Promise<void> {
-    const defaultCategories = [
-      'Food & Dining',
-      'Transportation',
-      'Shopping',
-      'Entertainment',
-      'Bills & Utilities',
-      'Healthcare',
-      'Travel',
-      'Other'
+    const categoryInserts = [
+      ...DEFAULT_FIXED_CATEGORIES.map(name => ({
+        name,
+        user_id: userId,
+        expense_kind: EXPENSE_KINDS.FIXED,
+      })),
+      ...DEFAULT_VARIABLE_CATEGORIES.map(name => ({
+        name,
+        user_id: userId,
+        expense_kind: EXPENSE_KINDS.VARIABLE,
+      })),
     ]
-
-    const categoryInserts = defaultCategories.map(name => ({
-      name,
-      user_id: userId,
-    }))
 
     const { error: categoryError } = await adminSupabase
       .from('categories')

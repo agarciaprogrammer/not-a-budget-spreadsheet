@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Input } from '@/components/ui/Input'
 import { Select, type SelectOption } from '@/components/ui/Select'
 import { Button } from '@/components/ui/Button'
@@ -9,6 +9,7 @@ import { useAuth } from '@/components/providers/AuthProvider'
 import { formatDateToYYYYMMDD } from '@/lib/utils/date-utils'
 import { useTranslation } from '@/hooks/useTranslation'
 import { useCategoryTranslation } from '@/hooks/useCategoryTranslation'
+import { EXPENSE_KIND_REQUIRED_FROM, EXPENSE_KINDS } from '@/lib/constants'
 
 export interface TransactionFormData {
   type: 'income' | 'expense'
@@ -16,6 +17,7 @@ export interface TransactionFormData {
   date: string
   category_id: string
   description: string
+  expense_kind?: 'fixed' | 'variable' | null
 }
 
 interface TransactionFormProps {
@@ -45,9 +47,25 @@ export function TransactionForm({
     date: formatDateToYYYYMMDD(new Date()),
     category_id: '',
     description: '',
+    expense_kind: undefined,
     ...initialData
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const expenseKindRequired = formData.type === 'expense' && formData.date >= EXPENSE_KIND_REQUIRED_FROM
+
+  const filteredCategories = useMemo(() => {
+    if (formData.type !== 'expense') {
+      return categories
+    }
+    if (!formData.expense_kind) {
+      return categories
+    }
+    return categories.filter(
+      (category) =>
+        !category.expense_kind || category.expense_kind === formData.expense_kind
+    )
+  }, [categories, formData.type, formData.expense_kind])
 
   // Cargar categorías
   useEffect(() => {
@@ -57,18 +75,37 @@ export function TransactionForm({
       try {
         const categories = await transactionService.getUserCategories(user.id)
         setCategories(categories)
-        
-        // Establecer la primera categoría como seleccionada por defecto si existe
-        if (categories.length > 0 && !formData.category_id) {
-          setFormData(prev => ({ ...prev, category_id: categories[0].id }))
-        }
       } catch (error) {
         console.error('Error loading categories:', error)
       }
     }
 
     loadCategories()
-  }, [user, formData.category_id])
+  }, [user])
+
+  useEffect(() => {
+    if (categories.length === 0 || formData.category_id) {
+      return
+    }
+
+    if (filteredCategories.length > 0) {
+      setFormData(prev => ({ ...prev, category_id: filteredCategories[0].id }))
+    }
+  }, [categories, filteredCategories, formData.category_id])
+
+  useEffect(() => {
+    if (formData.type !== 'expense' || !formData.expense_kind) {
+      return
+    }
+
+    const isCurrentCategoryAllowed = filteredCategories.some(
+      (category) => category.id === formData.category_id
+    )
+
+    if (!isCurrentCategoryAllowed) {
+      setFormData(prev => ({ ...prev, category_id: '' }))
+    }
+  }, [formData.type, formData.expense_kind, formData.category_id, filteredCategories])
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {}
@@ -83,6 +120,10 @@ export function TransactionForm({
 
     if (!formData.category_id) {
       newErrors.category_id = t('form.validation.category.required')
+    }
+
+    if (expenseKindRequired && !formData.expense_kind) {
+      newErrors.expense_kind = t('form.validation.expenseKind.required')
     }
 
     setErrors(newErrors)
@@ -101,7 +142,7 @@ export function TransactionForm({
     }
   }
 
-  const categoryOptions: SelectOption[] = categories.map(category => ({
+  const categoryOptions: SelectOption[] = filteredCategories.map(category => ({
     value: category.id,
     label: translateCategoryName(category.name)
   }))
@@ -120,7 +161,10 @@ export function TransactionForm({
               name="type"
               value="expense"
               checked={formData.type === 'expense'}
-              onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as 'income' | 'expense' }))}
+              onChange={(e) => setFormData(prev => ({ 
+                ...prev, 
+                type: e.target.value as 'income' | 'expense',
+              }))}
               className="mr-2"
             />
             {t('form.transaction.expense')}
@@ -131,13 +175,59 @@ export function TransactionForm({
               name="type"
               value="income"
               checked={formData.type === 'income'}
-              onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as 'income' | 'expense' }))}
+              onChange={(e) => setFormData(prev => ({ 
+                ...prev, 
+                type: e.target.value as 'income' | 'expense',
+                expense_kind: undefined
+              }))}
               className="mr-2"
             />
             {t('form.transaction.income')}
           </label>
         </div>
       </div>
+
+      {/* Tipo de gasto */}
+      {formData.type === 'expense' && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            {t('form.transaction.expenseKind')}
+          </label>
+          <div className="flex space-x-4">
+            <label className="flex items-center text-gray-700">
+              <input
+                type="radio"
+                name="expense_kind"
+                value={EXPENSE_KINDS.FIXED}
+                checked={formData.expense_kind === EXPENSE_KINDS.FIXED}
+                onChange={(e) => setFormData(prev => ({ 
+                  ...prev, 
+                  expense_kind: e.target.value as 'fixed' | 'variable'
+                }))}
+                className="mr-2"
+              />
+              {t('form.transaction.expenseKind.fixed')}
+            </label>
+            <label className="flex items-center text-gray-700">
+              <input
+                type="radio"
+                name="expense_kind"
+                value={EXPENSE_KINDS.VARIABLE}
+                checked={formData.expense_kind === EXPENSE_KINDS.VARIABLE}
+                onChange={(e) => setFormData(prev => ({ 
+                  ...prev, 
+                  expense_kind: e.target.value as 'fixed' | 'variable'
+                }))}
+                className="mr-2"
+              />
+              {t('form.transaction.expenseKind.variable')}
+            </label>
+          </div>
+          {errors.expense_kind && (
+            <p className="mt-1 text-sm text-red-600">{errors.expense_kind}</p>
+          )}
+        </div>
+      )}
 
       {/* Descripción */}
       <Input

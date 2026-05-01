@@ -6,6 +6,7 @@ export interface IncomeExpenseHistoryItem {
   month: string
   income: number
   expense: number
+  savings: number
 }
 
 export interface IncomeExpenseHistoryData {
@@ -13,37 +14,71 @@ export interface IncomeExpenseHistoryData {
   monthsBack: number
 }
 
-export function useIncomeExpenseHistory(refreshTrigger: number, monthsBack: number = 6) {
+export function useIncomeExpenseHistory(
+  refreshTrigger: number,
+  monthsBack: number = 6
+) {
   const { user } = useAuth()
-  const [historyData, setHistoryData] = useState<IncomeExpenseHistoryData>({
-    data: [],
-    monthsBack
-  })
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
-  const loadHistoryData = useCallback(async () => {
-    if (!user) return
+  const [historyData, setHistoryData] =
+    useState<IncomeExpenseHistoryData>({
+      data: [],
+      monthsBack,
+    })
 
-    setLoading(true)
-    setError(null)
+  const [loading, setLoading] =
+    useState(true)
 
-    try {
-      const data = await transactionService.getIncomeExpenseHistory(user.id, monthsBack)
-      setHistoryData({ data, monthsBack })
-    } catch (error) {
-      console.error('Error loading income/expense history:', error)
-      setError(error instanceof Error ? error.message : 'Error loading income/expense history')
-    } finally {
-      setLoading(false)
-    }
-  }, [user, monthsBack])
+  const [error, setError] =
+    useState<string | null>(null)
+
+  const loadHistoryData =
+    useCallback(async () => {
+      if (!user) return
+
+      setLoading(true)
+      setError(null)
+
+      try {
+        const data =
+          await transactionService.getIncomeExpenseHistory(
+            user.id,
+            monthsBack
+          )
+
+        setHistoryData({
+          data,
+          monthsBack,
+        })
+      } catch (error) {
+        console.error(
+          'Error loading income/expense history:',
+          error
+        )
+
+        setError(
+          error instanceof Error
+            ? error.message
+            : 'Error loading income/expense history'
+        )
+      } finally {
+        setLoading(false)
+      }
+    }, [user, monthsBack])
 
   useEffect(() => {
     if (user) {
       loadHistoryData()
     }
-  }, [user, refreshTrigger, loadHistoryData])
+  }, [
+    user,
+    refreshTrigger,
+    loadHistoryData,
+  ])
 
-  return { historyData, loading, error }
-} 
+  return {
+    historyData,
+    loading,
+    error,
+  }
+}

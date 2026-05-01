@@ -20,13 +20,24 @@ interface TransactionTableProps {
   onRefresh?: () => void
 }
 
+const getTypeBadgeStyles = (type: Transaction['type']) => {
+  switch (type) {
+    case 'income':
+      return 'bg-green-100 text-green-800'
+    case 'expense':
+      return 'bg-red-100 text-red-800'
+    case 'transfer':
+      return 'bg-blue-100 text-blue-800'
+    case 'adjustment':
+      return 'bg-slate-100 text-slate-800'
+  }
+}
+
 export default function TransactionTable({ refreshTrigger, onAddTransaction, onRefresh }: TransactionTableProps) {
   const { user } = useAuth()
   const { monthRange } = useDashboardDate()
   const { t } = useTranslation()
   const { translateCategoryName } = useCategoryTranslation()
-  
-  // Pagination state
   const [page, setPage] = useState(1)
   const [pageSize] = useState(10)
   const [total, setTotal] = useState(0)
@@ -48,14 +59,14 @@ export default function TransactionTable({ refreshTrigger, onAddTransaction, onR
         pageSize,
         dateRange: {
           startDate: monthRange.startDate,
-          endDate: monthRange.endDate
-        }
+          endDate: monthRange.endDate,
+        },
       })
       setTransactions(result.data)
       setTotal(result.total)
-    } catch (error) {
-      console.error('Error loading transactions:', error)
-      setError(error instanceof Error ? error.message : t('transactions.load.error'))
+    } catch (loadError) {
+      console.error('Error loading transactions:', loadError)
+      setError(loadError instanceof Error ? loadError.message : t('transactions.load.error'))
     } finally {
       setLoading(false)
     }
@@ -67,14 +78,9 @@ export default function TransactionTable({ refreshTrigger, onAddTransaction, onR
     }
   }, [user, refreshTrigger, loadTransactions])
 
-  // Reset to page 1 when filters change
   useEffect(() => {
     setPage(1)
   }, [monthRange])
-
-  const handlePageChange = (newPage: number) => {
-    setPage(newPage)
-  }
 
   const handleEditTransaction = (transaction: Transaction) => {
     setSelectedTransaction(transaction)
@@ -93,14 +99,67 @@ export default function TransactionTable({ refreshTrigger, onAddTransaction, onR
 
     try {
       await transactionService.deleteTransaction(transactionId, user.id)
-      // Trigger refresh instead of calling loadTransactions directly
       if (onRefresh) {
         onRefresh()
       }
-    } catch (error) {
-      console.error('Error deleting transaction:', error)
+    } catch (deleteError) {
+      console.error('Error deleting transaction:', deleteError)
       alert(t('transactions.delete.error'))
     }
+  }
+
+  const getTypeLabel = (type: Transaction['type']) => {
+    switch (type) {
+      case 'income':
+        return t('transactions.type.income')
+      case 'expense':
+        return t('transactions.type.expense')
+      case 'transfer':
+        return t('transactions.type.transfer')
+      case 'adjustment':
+        return t('transactions.type.adjustment')
+    }
+  }
+
+  const getCategoryLabel = (transaction: Transaction) => {
+    if (!transaction.categories?.name) {
+      return '-'
+    }
+
+    return translateCategoryName(transaction.categories.name)
+  }
+
+  const getAmountDisplay = (transaction: Transaction) => {
+    if (transaction.type === 'transfer') {
+      return (
+        <div className="space-y-1">
+          <div className="text-blue-700">
+            {formatCurrency(transaction.from_amount ?? 0, transaction.from_currency ?? 'ARS')}
+          </div>
+          <div className="text-gray-500">
+            {formatCurrency(transaction.to_amount ?? 0, transaction.to_currency ?? 'USD')}
+          </div>
+        </div>
+      )
+    }
+
+    return formatCurrency(transaction.amount ?? 0, transaction.currency ?? 'ARS')
+  }
+
+  const getAmountClassName = (transaction: Transaction) => {
+    if (transaction.type === 'income') {
+      return 'text-green-600'
+    }
+
+    if (transaction.type === 'expense') {
+      return 'text-red-600'
+    }
+
+    if (transaction.type === 'adjustment') {
+      return (transaction.amount ?? 0) >= 0 ? 'text-emerald-600' : 'text-orange-600'
+    }
+
+    return 'text-blue-600'
   }
 
   if (loading) {
@@ -153,22 +212,15 @@ export default function TransactionTable({ refreshTrigger, onAddTransaction, onR
                   {transaction.description || '-'}
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-900">
-                  {/* Acceder a la categoría a través de la relación */}
-                  {translateCategoryName((transaction as Transaction & { categories?: { name: string } }).categories?.name || t('transactions.table.unknown'))}
+                  {getCategoryLabel(transaction)}
                 </td>
                 <td className="px-4 py-3 text-sm">
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                    transaction.type === 'income' 
-                      ? 'bg-green-100 text-green-800' 
-                      : 'bg-red-100 text-red-800'
-                  }`}>
-                    {transaction.type === 'income' ? t('transactions.type.income') : t('transactions.type.expense')}
+                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getTypeBadgeStyles(transaction.type)}`}>
+                    {getTypeLabel(transaction.type)}
                   </span>
                 </td>
-                <td className={`px-4 py-3 text-sm font-medium ${
-                  transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
-                }`}>
-                  {formatCurrency(transaction.amount)}
+                <td className={`px-4 py-3 text-sm font-medium ${getAmountClassName(transaction)}`}>
+                  {getAmountDisplay(transaction)}
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-900">
                   <div className="flex items-center gap-2">
@@ -188,7 +240,7 @@ export default function TransactionTable({ refreshTrigger, onAddTransaction, onR
                       className="text-red-600 hover:text-red-900"
                       title={t('transactions.delete.title')}
                     >
-                      🗑️
+                      {t('delete')}
                     </Button>
                   </div>
                 </td>
@@ -198,13 +250,12 @@ export default function TransactionTable({ refreshTrigger, onAddTransaction, onR
         </table>
       </div>
 
-      {/* Pagination */}
       <Pagination
         currentPage={page}
         totalPages={totalPages}
         totalItems={total}
         pageSize={pageSize}
-        onPageChange={handlePageChange}
+        onPageChange={setPage}
         className="mt-6"
       />
 
@@ -216,4 +267,4 @@ export default function TransactionTable({ refreshTrigger, onAddTransaction, onR
       />
     </div>
   )
-} 
+}

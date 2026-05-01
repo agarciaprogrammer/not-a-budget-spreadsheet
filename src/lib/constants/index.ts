@@ -10,11 +10,18 @@ export const ROUTES = {
 export const TRANSACTION_TYPES = {
   INCOME: 'income',
   EXPENSE: 'expense',
+  TRANSFER: 'transfer',
+  ADJUSTMENT: 'adjustment',
 } as const
 
 export const EXPENSE_KINDS = {
   FIXED: 'fixed',
   VARIABLE: 'variable',
+} as const
+
+export const CURRENCIES = {
+  ARS: 'ARS',
+  USD: 'USD',
 } as const
 
 // Roles de usuario
@@ -107,6 +114,7 @@ export const DEFAULT_FIXED_CATEGORIES = [
 
 export const DEFAULT_VARIABLE_CATEGORIES = [
   'Pedidos / Delivery',
+  'Pet',
   'Salidas',
   'Supermercado',
   'Gustos personales',

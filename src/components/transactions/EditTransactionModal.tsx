@@ -49,14 +49,25 @@ export default function EditTransactionModal({
   }
 
   const initialData = transaction
-    ? {
-        type: transaction.type,
-        amount: Number(transaction.amount),
-        date: transaction.date,
-        category_id: transaction.category_id,
-        description: transaction.description || '',
-        expense_kind: transaction.expense_kind ?? undefined,
-      }
+    ? transaction.type === 'transfer'
+      ? {
+          type: transaction.type,
+          date: transaction.date,
+          description: transaction.description || '',
+          from_currency: transaction.from_currency ?? 'ARS',
+          from_amount: transaction.from_amount ?? 0,
+          to_currency: transaction.to_currency ?? 'USD',
+          to_amount: transaction.to_amount ?? 0,
+        }
+      : {
+          type: transaction.type,
+          amount: Number(transaction.amount ?? 0),
+          currency: transaction.currency ?? 'ARS',
+          date: transaction.date,
+          category_id: transaction.category_id ?? undefined,
+          description: transaction.description || '',
+          expense_kind: transaction.expense_kind ?? undefined,
+        }
     : undefined
 
   return (

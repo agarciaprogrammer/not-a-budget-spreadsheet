@@ -1,129 +1,144 @@
 'use client'
 
+import { useState } from 'react'
 import { useSummaryData } from '@/hooks/useSummaryData'
 import { useTranslation } from '@/hooks/useTranslation'
+import { formatCurrency } from '@/lib/utils/formatters'
+import EditOpeningBalanceModal from './EditOpeningBalanceModal'
+import { useDashboardDate } from '@/components/providers/DashboardDateProvider'
 
-interface SummaryCardsProps {
-  refreshTrigger: number
+interface CardProps {
+  title: string
+  ars: number
+  usd?: number // Opcional
+  icon: string
+  colorClass: string
+  bgClass: string
+  onClick?: () => void
 }
 
-export default function SummaryCards({ refreshTrigger }: SummaryCardsProps) {
-  const { summaryData, loading, error } = useSummaryData(refreshTrigger)
-  const { t } = useTranslation()
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2
-    }).format(amount)
-  }
-
-  if (loading) {
-    return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="bg-white rounded-lg shadow p-6 animate-pulse">
-            <div className="flex items-center">
-              <div className="p-2 bg-gray-200 rounded-lg w-12 h-12"></div>
-              <div className="ml-4 flex-1">
-                <div className="h-4 bg-gray-200 rounded w-24 mb-2"></div>
-                <div className="h-8 bg-gray-200 rounded w-20"></div>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-gray-100 rounded-lg">
-                <span className="text-2xl">📊</span>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">{t('dashboard.error')}</p>
-                <p className="text-lg font-semibold text-gray-400">--</p>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    )
-  }
-
+// Componente Atómico para la Card para asegurar consistencia total
+function StatCard({ title, ars, usd, icon, colorClass, bgClass, onClick }: CardProps) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-      {/* Total Income Card */}
-      <div className="bg-white rounded-lg shadow p-6 border-l-4 border-green-500">
-        <div className="flex items-center">
-          <div className="p-2 bg-green-100 rounded-lg">
-            <span className="text-2xl">💰</span>
-          </div>
-          <div className="ml-4">
-            <p className="text-sm font-medium text-gray-600">{t('dashboard.total.income')}</p>
-            <p className="text-2xl font-semibold text-green-600">
-              {formatCurrency(summaryData.totalIncome)}
-            </p>
-          </div>
+    <div 
+      onClick={onClick}
+      className={`bg-white rounded-xl shadow-sm border border-gray-100 p-4 flex flex-col justify-between transition-all ${onClick ? 'cursor-pointer hover:shadow-md hover:border-sky-200' : ''} min-h-[140px]`}
+    >
+      <div className="flex items-center gap-3 mb-3">
+        <div className={`flex-none w-10 h-10 rounded-lg ${bgClass} flex items-center justify-center text-xl`}>
+          <span className={colorClass}>{icon}</span>
         </div>
+        <p className="text-xs font-semibold text-gray-800 uppercase tracking-wider leading-tight">
+          {title}
+        </p>
       </div>
 
-      {/* Fixed Expenses Card */}
-      <div className="bg-white rounded-lg shadow p-6 border-l-4 border-amber-500">
-        <div className="flex items-center">
-          <div className="p-2 bg-amber-100 rounded-lg">
-            <span className="text-2xl">🧾</span>
-          </div>
-          <div className="ml-4">
-            <p className="text-sm font-medium text-gray-600">{t('dashboard.total.fixed.expenses')}</p>
-            <p className="text-2xl font-semibold text-amber-600">
-              {formatCurrency(summaryData.totalFixedExpenses)}
-            </p>
-          </div>
+      <div className="space-y-1">
+        {/* Línea ARS - Siempre presente */}
+        <div className="flex flex-col">
+          <span className="text-[10px] text-gray-400 font-medium">ARS</span>
+          <span className={`text-lg xl:text-xl font-bold tabular-nums truncate ${colorClass}`}>
+            {formatCurrency(ars, 'ARS')}
+          </span>
         </div>
-      </div>
 
-      {/* Variable Expenses Card */}
-      <div className="bg-white rounded-lg shadow p-6 border-l-4 border-red-500">
-        <div className="flex items-center">
-          <div className="p-2 bg-red-100 rounded-lg">
-            <span className="text-2xl">💸</span>
-          </div>
-          <div className="ml-4">
-            <p className="text-sm font-medium text-gray-600">{t('dashboard.total.variable.expenses')}</p>
-            <p className="text-2xl font-semibold text-red-600">
-              {formatCurrency(summaryData.totalVariableExpenses)}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Net Balance Card */}
-      <div className={`bg-white rounded-lg shadow p-6 border-l-4 ${
-        summaryData.netBalance >= 0 ? 'border-blue-500' : 'border-orange-500'
-      }`}>
-        <div className="flex items-center">
-          <div className={`p-2 rounded-lg ${
-            summaryData.netBalance >= 0 ? 'bg-blue-100' : 'bg-orange-100'
-          }`}>
-            <span className="text-2xl">📊</span>
-          </div>
-          <div className="ml-4">
-            <p className="text-sm font-medium text-gray-600">{t('dashboard.net.balance')}</p>
-            <p className={`text-2xl font-semibold ${
-              summaryData.netBalance >= 0 ? 'text-blue-600' : 'text-orange-600'
-            }`}>
-              {formatCurrency(summaryData.netBalance)}
-            </p>
-          </div>
+        {/* Línea USD - Ocupa espacio aunque no exista para mantener alineación */}
+        <div className="flex flex-col border-t border-gray-50 pt-1">
+          {usd !== undefined ? (
+            <>
+              <span className="text-[10px] text-gray-400 font-medium">USD</span>
+              <span className={`text-lg xl:text-xl font-bold tabular-nums truncate ${colorClass}`}>
+                {formatCurrency(usd, 'USD')}
+              </span>
+            </>
+          ) : (
+            // El "Ghost" element: mantiene la altura pero invisible
+            <div className="h-[34px] xl:h-[38px]" aria-hidden="true" />
+          )}
         </div>
       </div>
     </div>
   )
-} 
+}
+
+interface SummaryCardsProps {
+  refreshTrigger?: number
+}
+
+export default function SummaryCards({ refreshTrigger }: SummaryCardsProps) {
+  const { summaryData, loading, error } = useSummaryData(refreshTrigger ?? 0)
+  const { t } = useTranslation()
+  const { selectedMonth } = useDashboardDate()
+  const [isModalOpen, setIsModalOpen] = useState(false)
+
+  if (loading || error) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-4 mb-8">
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className="bg-gray-50 rounded-xl h-[140px] animate-pulse" />
+        ))}
+      </div>
+    )
+  }
+
+  const netIsPositive = summaryData.netBalance.ARS >= 0 && summaryData.netBalance.USD >= 0
+
+  return (
+    <>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 mb-8">
+        <StatCard
+          title={t('dashboard.opening.balance')}
+          ars={summaryData.openingBalance.ARS}
+          usd={summaryData.openingBalance.USD}
+          icon="$"
+          colorClass="text-sky-600"
+          bgClass="bg-sky-50"
+          onClick={() => setIsModalOpen(true)}
+        />
+
+        <StatCard
+          title={t('dashboard.total.income')}
+          ars={summaryData.totalIncome}
+          icon="+"
+          colorClass="text-emerald-600"
+          bgClass="bg-emerald-50"
+        />
+
+        <StatCard
+          title={t('dashboard.total.fixed.expenses')}
+          ars={summaryData.totalFixedExpenses}
+          icon="="
+          colorClass="text-amber-600"
+          bgClass="bg-amber-50"
+        />
+
+        <StatCard
+          title={t('dashboard.total.variable.expenses')}
+          ars={summaryData.totalVariableExpenses}
+          icon="-"
+          colorClass="text-rose-600"
+          bgClass="bg-rose-50"
+        />
+
+        <StatCard
+          title={t('dashboard.net.balance')}
+          ars={summaryData.netBalance.ARS}
+          usd={summaryData.netBalance.USD}
+          icon="#"
+          colorClass={netIsPositive ? 'text-violet-600' : 'text-orange-600'}
+          bgClass={netIsPositive ? 'bg-blue-50' : 'bg-orange-50'}
+        />
+      </div>
+
+      <EditOpeningBalanceModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        year={selectedMonth.getFullYear()}
+        month={selectedMonth.getMonth() + 1}
+        initialARS={summaryData.openingBalance.ARS}
+        initialUSD={summaryData.openingBalance.USD}
+        onSaved={() => window.dispatchEvent(new CustomEvent('openingBalanceOverride:changed'))}
+      />
+    </>
+  )
+}

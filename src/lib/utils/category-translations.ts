@@ -38,6 +38,8 @@ const categoryTranslations = {
     'Suscripciones esenciales': 'Essential Subscriptions',
     // Variable categories (Spanish canonical)
     'Pedidos / Delivery': 'Delivery',
+    'Pet': 'Pet',
+    'Mascotas': 'Pet',
     'Salidas': 'Going Out',
     'Supermercado': 'Groceries',
     'Gustos personales': 'Personal Treats',
@@ -94,6 +96,8 @@ const categoryTranslations = {
     'Suscripciones esenciales': 'Suscripciones esenciales',
     // Variable categories (Spanish canonical)
     'Pedidos / Delivery': 'Pedidos / Delivery',
+    'Pet': 'Mascotas',
+    'Mascotas': 'Mascotas',
     'Salidas': 'Salidas',
     'Supermercado': 'Supermercado',
     'Gustos personales': 'Gustos personales',

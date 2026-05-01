@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useEffect } from 'react'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { LoadingState } from '@/components/ui/LoadingState'
 import { ErrorState } from '@/components/ui/ErrorState'
@@ -23,6 +24,12 @@ export default function DashboardPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
   const { t } = useTranslation()
+
+  useEffect(() => {
+    const handler = () => setRefreshTrigger(prev => prev + 1)
+    window.addEventListener('openingBalanceOverride:changed', handler)
+    return () => window.removeEventListener('openingBalanceOverride:changed', handler)
+  }, [])
 
   const handleTransactionAdded = () => {
     setRefreshTrigger(prev => prev + 1)

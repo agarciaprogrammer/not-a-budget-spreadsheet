@@ -121,37 +121,55 @@ export type Database = {
           id: string
           budget_id: string
           user_id: string
-          category_id: string
-          type: 'income' | 'expense'
-          amount: number
+          category_id: string | null
+          type: 'income' | 'expense' | 'transfer' | 'adjustment'
+          amount: number | null
           date: string
           description: string | null
           created_at: string
           expense_kind: 'fixed' | 'variable' | null
+          currency: 'ARS' | 'USD' | null
+          from_currency: 'ARS' | 'USD' | null
+          from_amount: number | null
+          to_currency: 'ARS' | 'USD' | null
+          to_amount: number | null
+          exchange_rate: number | null
         }
         Insert: {
           id?: string
           budget_id: string
           user_id: string
-          category_id: string
-          type: 'income' | 'expense'
-          amount: number
+          category_id?: string | null
+          type: 'income' | 'expense' | 'transfer' | 'adjustment'
+          amount?: number | null
           date: string
           description?: string | null
           created_at?: string
           expense_kind?: 'fixed' | 'variable' | null
+          currency?: 'ARS' | 'USD' | null
+          from_currency?: 'ARS' | 'USD' | null
+          from_amount?: number | null
+          to_currency?: 'ARS' | 'USD' | null
+          to_amount?: number | null
+          exchange_rate?: number | null
         }
         Update: {
           id?: string
           budget_id?: string
           user_id?: string
-          category_id?: string
-          type?: 'income' | 'expense'
-          amount?: number
+          category_id?: string | null
+          type?: 'income' | 'expense' | 'transfer' | 'adjustment'
+          amount?: number | null
           date?: string
           description?: string | null
           created_at?: string
           expense_kind?: 'fixed' | 'variable' | null
+          currency?: 'ARS' | 'USD' | null
+          from_currency?: 'ARS' | 'USD' | null
+          from_amount?: number | null
+          to_currency?: 'ARS' | 'USD' | null
+          to_amount?: number | null
+          exchange_rate?: number | null
         }
       }
     }

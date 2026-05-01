@@ -15,6 +15,8 @@ WITH allowed_categories(name) AS (
     ('Suscripciones esenciales'),
     -- Variable (ES)
     ('Pedidos / Delivery'),
+    ('Pet'),
+    ('Mascotas'),
     ('Salidas'),
     ('Supermercado'),
     ('Gustos personales'),

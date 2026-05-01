@@ -1,10 +1,14 @@
 /**
  * Formatea un número como moneda
  */
-export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('es-AR', {
+export function formatCurrency(
+  amount: number,
+  currency: 'ARS' | 'USD' = 'ARS',
+  locale: string = 'es-AR'
+): string {
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
-    currency: 'ARS',
+    currency,
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(amount)

@@ -19,9 +19,73 @@
   "success": "Success",
   "nav": {
     "dashboard": "Dashboard",
+    "patrimonio": "Wealth",
     "food": "Food",
     "transactions": "Transactions",
     "change.language": "Change language"
+  },
+  "patrimonio": {
+    "title": "Wealth Management",
+    "subtitle": "Financial Operating System (FOS)",
+    "main_card_title": "General Budget Dashboard",
+    "main_card_desc": "Manage your income, variable expenses, and recent transactions.",
+    "modules": {
+      "distribucion": {
+        "title": "Wealth Distribution",
+        "desc": "Visualize the distribution of your assets across different financial layers."
+      },
+      "evolucion": {
+        "title": "Wealth Evolution",
+        "desc": "Analyze how your net worth grows over time."
+      },
+      "objetivos": {
+        "title": "Wealth Goals",
+        "desc": "Set financial goals based on defined parameters."
+      },
+      "asignacion": {
+        "title": "Monthly Wealth Allocation",
+        "desc": "Run the flow to allocate your new capital resources across your wealth layers."
+      }
+    },
+    "coming_soon": "Coming Soon",
+    "active": "Enter",
+    "asignacion": {
+      "title": "Monthly Wealth Allocation",
+      "resources_title": "New Capital Resources",
+      "resources_desc": "Add any new cash flow or capital influx to allocate this period.",
+      "add_resource": "Add Capital Resource",
+      "amount": "Amount",
+      "type": "Type",
+      "type_salary": "Salary",
+      "type_bonus": "Bonus",
+      "type_freelance": "Freelance",
+      "type_asset_sale": "Asset Sale",
+      "type_other": "Other",
+      "info_title": "Current Financial Snapshot",
+      "info_desc": "Automatically retrieved tracking data. Edit if values are incorrect.",
+      "fixed_expenses": "Fixed Expenses",
+      "variable_expenses": "Previous Variable Expenses",
+      "available_capital": "Available Capital",
+      "confirm": "Run Wealth Allocation",
+      "back": "Back to Wealth",
+      "result_title": "Wealth Allocation Proposal",
+      "result_desc": "Suggested distribution for your available capital this period.",
+      "layer": "Layer",
+      "layer1_name": "Layer 1: Daily Liquidity",
+      "layer1_desc": "Funds for daily operations and short-term liquidity needs.",
+      "layer2_name": "Layer 2: Emergency Fund",
+      "layer2_desc": "Safety net covering 3-6 months of essential fixed expenses.",
+      "layer3_name": "Layer 3: Capital Buffer",
+      "layer3_desc": "Liquid and low-risk savings for upcoming short-term goals.",
+      "layer4_name": "Layer 4: Medium-Term Investments",
+      "layer4_desc": "Balanced growth portfolio with a 1-3 year horizon.",
+      "layer5_name": "Layer 5: Long-Term Investments",
+      "layer5_desc": "Core strategic ETFs and equity assets with 5+ year horizon.",
+      "layer6_name": "Layer 6: Speculative & Risk Capital",
+      "layer6_desc": "High-volatility assets, venture equity, and crypto allocations.",
+      "apply_allocation": "Confirm & Apply Wealth Allocation",
+      "allocation_success": "Wealth allocation proposal successfully applied."
+    }
   },
   "food": {
     "loading": "Loading kitchen inventory...",

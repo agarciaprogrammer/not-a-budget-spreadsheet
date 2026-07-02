@@ -95,7 +95,7 @@ export default function CategoryPieChart({ refreshTrigger }: CategoryPieChartPro
     return (
       <Card>
         <CardHeader>
-          <h3 className="text-lg font-semibold text-gray-900">{t('dashboard.charts.category.breakdown')}</h3>
+          <h3 className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">{t('dashboard.charts.category.breakdown')}</h3>
         </CardHeader>
         <CardContent>
           <LoadingState message={t('dashboard.charts.category.loading')} className="h-64" />
@@ -108,7 +108,7 @@ export default function CategoryPieChart({ refreshTrigger }: CategoryPieChartPro
     return (
       <Card>
         <CardHeader>
-          <h3 className="text-lg font-semibold text-gray-900">{t('dashboard.charts.category.breakdown')}</h3>
+          <h3 className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">{t('dashboard.charts.category.breakdown')}</h3>
         </CardHeader>
         <CardContent>
           <ErrorState 
@@ -125,7 +125,7 @@ export default function CategoryPieChart({ refreshTrigger }: CategoryPieChartPro
     return (
       <Card>
         <CardHeader>
-          <h3 className="text-lg font-semibold text-gray-900">{t('dashboard.charts.category.breakdown')}</h3>
+          <h3 className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">{t('dashboard.charts.category.breakdown')}</h3>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center justify-center h-64 text-gray-500">

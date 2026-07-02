@@ -119,7 +119,7 @@ function TransactionsPanel({
     <Card>
       <CardHeader>
         <div className="flex justify-between items-center">
-          <h2 className="text-xl font-semibold text-gray-900">{t('dashboard.recent.transactions')}</h2>
+          <h2 className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">{t('dashboard.recent.transactions')}</h2>
           <Button onClick={onOpenModal}>
             + {t('transactions.add.button')}
           </Button>

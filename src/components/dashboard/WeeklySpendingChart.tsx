@@ -50,21 +50,22 @@ export default function WeeklySpendingChart({ refreshTrigger }: WeeklySpendingCh
       emptyMessage={t('dashboard.charts.weekly.spending.no.data')}
     >
       <ResponsiveContainer width="100%" height={250}>
-        <BarChart data={spendingData.data} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+        <BarChart data={spendingData.data} margin={{ top: 10, right: 10, left: 20, bottom: 0 }}>
           <XAxis 
             dataKey="shortLabel" 
-            tick={{ fontSize: 12 }}
+            tick={{ fontSize: 10, fill: '#9ca3af' }}
             tickLine={false}
             axisLine={false}
             angle={-45}
             textAnchor="end"
-            height={80}
+            height={60}
           />
           <YAxis 
-            tick={{ fontSize: 12 }}
+            tick={{ fontSize: 10, fill: '#9ca3af' }}
             tickLine={false}
             axisLine={false}
             tickFormatter={formatCurrency}
+            width={60}
           />
           <Tooltip content={<CustomTooltip />} />
           <Bar 

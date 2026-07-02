@@ -137,6 +137,7 @@ export default function IncomeExpenseLineChart({
         >
           <LineChart
             data={historyData.data}
+            margin={{ top: 10, right: 10, left: 20, bottom: 0 }}
           >
             <CartesianGrid
               strokeDasharray="3 3"
@@ -149,9 +150,9 @@ export default function IncomeExpenseLineChart({
                 formatMonth
               }
               tick={{
-                fontSize: 12,
+                fontSize: 10,
               }}
-              stroke="#6b7280"
+              stroke="#9ca3af"
             />
 
             <YAxis
@@ -159,9 +160,10 @@ export default function IncomeExpenseLineChart({
                 formatCurrency
               }
               tick={{
-                fontSize: 12,
+                fontSize: 10,
               }}
-              stroke="#6b7280"
+              stroke="#9ca3af"
+              width={70}
             />
 
             <Tooltip

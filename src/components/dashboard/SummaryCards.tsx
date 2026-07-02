@@ -28,7 +28,7 @@ function StatCard({ title, ars, usd, icon, colorClass, bgClass, onClick }: CardP
         <div className={`flex-none w-10 h-10 rounded-lg ${bgClass} flex items-center justify-center text-xl`}>
           <span className={colorClass}>{icon}</span>
         </div>
-        <p className="text-xs font-semibold text-gray-800 uppercase tracking-wider leading-tight">
+        <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider leading-tight">
           {title}
         </p>
       </div>

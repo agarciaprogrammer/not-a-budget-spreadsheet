@@ -90,8 +90,8 @@ export default function MonthlyLimitCard({ userId, refreshTrigger }: MonthlyLimi
             <div className="flex-1">
               <div className="flex items-center justify-between mb-2">
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900">{t('dashboard.monthly.limit')}</h3>
-                  <p className="text-sm text-gray-500">
+                  <h3 className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">{t('dashboard.monthly.limit')}</h3>
+                  <p className="text-sm text-gray-400">
                     {getMonthName(currentMonth.month, locale)} {currentMonth.year}
                   </p>
                 </div>

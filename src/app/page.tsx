@@ -9,7 +9,7 @@ export default async function Home() {
   if (!session) {
     redirect('/auth')
   } else {
-    redirect('/dashboard')
+    redirect('/patrimonio')
   }
   // This will never render
   return null

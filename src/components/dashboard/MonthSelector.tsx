@@ -21,7 +21,7 @@ export default function MonthSelector() {
   return (
     <div className="flex items-center justify-between bg-white rounded-lg shadow p-6 mb-6">
       <div className="flex items-center gap-4">
-        <h2 className="text-xl font-bold text-gray-900">{t('nav.dashboard')}</h2>
+        <h2 className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">{t('nav.dashboard')}</h2>
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"

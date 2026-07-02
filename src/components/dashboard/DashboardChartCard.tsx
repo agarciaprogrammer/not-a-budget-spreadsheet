@@ -36,9 +36,9 @@ export default function DashboardChartCard({
         <CardHeader className={noPadding ? 'px-0 py-2' : ''}>
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-mg font-semibold text-gray-900">{title}</h3>
+              <h3 className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">{title}</h3>
               {subtitle && (
-                <p className="text-sm text-gray-500 mt-1">{subtitle}</p>
+                <p className="text-sm text-gray-400 mt-0.5">{subtitle}</p>
               )}
             </div>
           </div>

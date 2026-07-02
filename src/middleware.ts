@@ -45,13 +45,24 @@ export async function middleware(request: NextRequest) {
 
     const { data: { session } } = await supabase.auth.getSession()
 
+    const { pathname } = request.nextUrl
+
+    // Redirect root / based on auth status
+    if (pathname === '/') {
+      return NextResponse.redirect(new URL(session ? '/patrimonio' : '/auth', request.url))
+    }
+
     // If user is signed in and tries to access /auth
-    if (session && request.nextUrl.pathname.startsWith('/auth')) {
-      return NextResponse.redirect(new URL('/dashboard', request.url))
+    if (session && pathname.startsWith('/auth')) {
+      return NextResponse.redirect(new URL('/patrimonio', request.url))
     }
 
     // If user is not signed in and tries to access protected routes
-    if (!session && request.nextUrl.pathname.startsWith('/dashboard')) {
+    const isProtectedRoute = pathname.startsWith('/dashboard') ||
+      pathname.startsWith('/patrimonio') ||
+      pathname.startsWith('/asignacion')
+
+    if (!session && isProtectedRoute) {
       return NextResponse.redirect(new URL('/auth', request.url))
     }
 
@@ -65,5 +76,15 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/auth/:path*'],
+  matcher: [
+    '/',
+    '/auth',
+    '/auth/:path*',
+    '/dashboard',
+    '/dashboard/:path*',
+    '/patrimonio',
+    '/patrimonio/:path*',
+    '/asignacion',
+    '/asignacion/:path*',
+  ],
 }

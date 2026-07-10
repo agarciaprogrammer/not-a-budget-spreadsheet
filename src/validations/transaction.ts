@@ -20,6 +20,8 @@ const expenseSchema = baseTransactionSchema.extend({
   currency: currencySchema,
   category_id: z.string().uuid('Categoría debe ser válida'),
   expense_kind: z.enum([EXPENSE_KINDS.FIXED, EXPENSE_KINDS.VARIABLE]).optional().nullable(),
+  payment_id: z.string().uuid().optional().nullable(),
+  installment_ids: z.array(z.string().uuid()).optional(),
 })
 
 const transferSchema = baseTransactionSchema.extend({

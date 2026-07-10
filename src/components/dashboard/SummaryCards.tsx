@@ -73,8 +73,8 @@ export default function SummaryCards({ refreshTrigger }: SummaryCardsProps) {
 
   if (loading || error) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-4 mb-8">
-        {[...Array(5)].map((_, i) => (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-4 mb-8">
+        {[...Array(7)].map((_, i) => (
           <div key={i} className="bg-gray-50 rounded-xl h-[140px] animate-pulse" />
         ))}
       </div>
@@ -85,7 +85,7 @@ export default function SummaryCards({ refreshTrigger }: SummaryCardsProps) {
 
   return (
     <>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-4 mb-8">
         <StatCard
           title={t('dashboard.opening.balance')}
           ars={summaryData.openingBalance.ARS}
@@ -127,6 +127,24 @@ export default function SummaryCards({ refreshTrigger }: SummaryCardsProps) {
           icon="#"
           colorClass={netIsPositive ? 'text-violet-600' : 'text-orange-600'}
           bgClass={netIsPositive ? 'bg-blue-50' : 'bg-orange-50'}
+        />
+
+        <StatCard
+          title={t('dashboard.committed.capital')}
+          ars={summaryData.committedCapital.ARS}
+          usd={summaryData.committedCapital.USD}
+          icon="!"
+          colorClass="text-pink-600"
+          bgClass="bg-pink-50"
+        />
+
+        <StatCard
+          title={t('dashboard.available.capital')}
+          ars={summaryData.availableCapital.ARS}
+          usd={summaryData.availableCapital.USD}
+          icon="✓"
+          colorClass="text-teal-600"
+          bgClass="bg-teal-50"
         />
       </div>
 

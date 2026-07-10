@@ -18,10 +18,14 @@ import MonthlyLimitCard from '@/components/dashboard/MonthlyLimitCard'
 import { DashboardDateProvider } from '@/components/providers/DashboardDateProvider'
 import MonthSelector from '@/components/dashboard/MonthSelector'
 import { useTranslation } from '@/hooks/useTranslation'
+import AddCommitmentModal from '@/components/transactions/AddCommitmentModal'
+import CommitmentsList from '@/components/transactions/CommitmentsList'
+import InstallmentsCalendar from '@/components/transactions/InstallmentsCalendar'
 
 export default function DashboardPage() {
   const { user, loading, error } = useAuth()
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isCommitmentModalOpen, setIsCommitmentModalOpen] = useState(false)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
   const { t } = useTranslation()
 
@@ -85,17 +89,31 @@ export default function DashboardPage() {
           <MonthlyLimitCard userId={user.id} refreshTrigger={refreshTrigger} />
         </div>
         
-        <TransactionsPanel
-          onOpenModal={handleOpenModal}
-          refreshTrigger={refreshTrigger}
-          onAddTransaction={handleOpenModal}
-          onRefresh={handleTransactionAdded}
-        />
+        <div className="space-y-8">
+          <TransactionsPanel
+            onOpenModal={handleOpenModal}
+            refreshTrigger={refreshTrigger}
+            onAddTransaction={handleOpenModal}
+            onRefresh={handleTransactionAdded}
+          />
+
+          <CommitmentsPanel
+            onOpenModal={() => setIsCommitmentModalOpen(true)}
+            refreshTrigger={refreshTrigger}
+            onRefresh={() => setRefreshTrigger(prev => prev + 1)}
+          />
+        </div>
 
         <AddTransactionModal
           isOpen={isModalOpen}
           onClose={handleCloseModal}
           onTransactionAdded={handleTransactionAdded}
+        />
+
+        <AddCommitmentModal
+          isOpen={isCommitmentModalOpen}
+          onClose={() => setIsCommitmentModalOpen(false)}
+          onCommitmentAdded={() => setRefreshTrigger(prev => prev + 1)}
         />
       </PageContainer>
     </DashboardDateProvider>
@@ -131,6 +149,67 @@ function TransactionsPanel({
           onAddTransaction={onAddTransaction}
           onRefresh={onRefresh}
         />
+      </CardContent>
+    </Card>
+  )
+}
+
+function CommitmentsPanel({
+  onOpenModal,
+  refreshTrigger,
+  onRefresh,
+}: {
+  onOpenModal: () => void
+  refreshTrigger: number
+  onRefresh: () => void
+}) {
+  const [activeTab, setActiveTab] = useState<'list' | 'calendar'>('list')
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+          <div className="flex items-center gap-4">
+            <h2 className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Compromisos y Cuotas</h2>
+            <div className="flex bg-gray-100 p-0.5 rounded-lg text-xs font-medium">
+              <button
+                onClick={() => setActiveTab('list')}
+                className={`px-3 py-1 rounded-md transition-colors ${
+                  activeTab === 'list'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-900'
+                }`}
+              >
+                Mis Compromisos
+              </button>
+              <button
+                onClick={() => setActiveTab('calendar')}
+                className={`px-3 py-1 rounded-md transition-colors ${
+                  activeTab === 'calendar'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-900'
+                }`}
+              >
+                Calendario de Cuotas
+              </button>
+            </div>
+          </div>
+          <Button onClick={onOpenModal}>
+            + Registrar Compromiso
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {activeTab === 'list' ? (
+          <CommitmentsList 
+            refreshTrigger={refreshTrigger} 
+            onRefresh={onRefresh}
+          />
+        ) : (
+          <InstallmentsCalendar 
+            refreshTrigger={refreshTrigger} 
+          />
+        )}
       </CardContent>
     </Card>
   )

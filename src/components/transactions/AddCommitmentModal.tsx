@@ -5,6 +5,7 @@ import { Modal } from '@/components/ui/Modal'
 import CommitmentForm from '@/components/forms/CommitmentForm'
 import { commitmentService } from '@/lib/services/commitment.service'
 import { useAuth } from '@/components/providers/AuthProvider'
+import type { CommitmentFormData } from '@/validations/commitment'
 
 interface AddCommitmentModalProps {
   isOpen: boolean
@@ -21,7 +22,7 @@ export default function AddCommitmentModal({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const handleSubmit = async (formData: any) => {
+  const handleSubmit = async (formData: CommitmentFormData) => {
     if (!user) return
 
     setLoading(true)

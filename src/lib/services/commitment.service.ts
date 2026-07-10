@@ -13,7 +13,7 @@ export interface Commitment {
   date: string
   due_date: string
   payment_method: 'debit' | 'credit' | 'cash' | 'transfer'
-  status: 'pending' | 'completed'
+  status: 'pending' | 'partial' | 'completed'
   created_at: string
 }
 
@@ -126,7 +126,7 @@ export class CommitmentService {
   async getUserCommitments(
     userId: string,
     options?: {
-      status?: 'pending' | 'completed'
+      status?: 'pending' | 'partial' | 'completed'
       page?: number
       pageSize?: number
     }
@@ -208,7 +208,7 @@ export class CommitmentService {
     const { data, error } = await query
     if (error) throw error
 
-    return (data as any) ?? []
+    return (data as unknown as InstallmentWithCommitment[]) ?? []
   }
 
   async getCommittedCapital(

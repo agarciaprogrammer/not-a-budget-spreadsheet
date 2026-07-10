@@ -290,7 +290,7 @@ export function TransactionForm({
           currency: formData.currency,
           expense_kind: formData.expense_kind || undefined,
           installment_ids: selectedInstallmentIds.length > 0 ? selectedInstallmentIds : undefined,
-        } as any
+        } as Extract<TransactionFormData, { type: 'expense' }>
         break
       case TRANSACTION_TYPES.TRANSFER:
         payload = {

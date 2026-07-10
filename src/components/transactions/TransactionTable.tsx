@@ -102,9 +102,9 @@ export default function TransactionTable({ refreshTrigger, onAddTransaction, onR
       if (onRefresh) {
         onRefresh()
       }
-    } catch (deleteError: any) {
+    } catch (deleteError) {
       console.error('Error deleting transaction:', deleteError)
-      const message = deleteError?.message || deleteError?.details || t('transactions.delete.error')
+      const message = deleteError instanceof Error ? deleteError.message : t('transactions.delete.error')
       alert(`Error: ${message}`)
     }
   }

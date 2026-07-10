@@ -210,7 +210,7 @@ export default function AsignacionPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-4 pt-6">
-              {resources.map((resource, index) => (
+              {resources.map((resource) => (
                 <div key={resource.id} className="flex flex-col sm:flex-row gap-4 items-end bg-gray-50/50 p-4 rounded-xl border border-gray-100">
                   <div className="w-full sm:w-1/3">
                     <Select

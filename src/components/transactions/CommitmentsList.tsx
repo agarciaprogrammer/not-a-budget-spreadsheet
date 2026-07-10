@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { commitmentService, type Commitment } from '@/lib/services/commitment.service'
 import { LoadingState } from '@/components/ui/LoadingState'
-import { ErrorState } from '@/components/ui/ErrorState'
 import { Button } from '@/components/ui/Button'
 import { Pagination } from '@/components/ui/Pagination'
 import { formatCurrency, formatDate } from '@/lib/utils/formatters'
@@ -109,6 +108,8 @@ export default function CommitmentsList({ refreshTrigger, onRefresh }: Commitmen
     )
   }
 
+  const totalPages = Math.ceil(total / pageSize)
+
   return (
     <div className="space-y-4">
       <div className="overflow-x-auto">
@@ -170,6 +171,7 @@ export default function CommitmentsList({ refreshTrigger, onRefresh }: Commitmen
         <div className="flex justify-center pt-4">
           <Pagination
             currentPage={page}
+            totalPages={totalPages}
             totalItems={total}
             pageSize={pageSize}
             onPageChange={setPage}

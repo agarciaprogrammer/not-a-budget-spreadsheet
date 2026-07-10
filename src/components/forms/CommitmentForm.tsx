@@ -103,7 +103,7 @@ export default function CommitmentForm({
           label="Moneda"
           options={currencyOptions}
           value={currency}
-          onChange={(e) => setCurrency(e.target.value as any)}
+          onChange={(e) => setCurrency(e.target.value as typeof CURRENCIES[keyof typeof CURRENCIES])}
         />
       </div>
 
@@ -130,7 +130,7 @@ export default function CommitmentForm({
           label="Medio de Pago"
           options={paymentMethodOptions}
           value={paymentMethod}
-          onChange={(e) => setPaymentMethod(e.target.value as any)}
+          onChange={(e) => setPaymentMethod(e.target.value as 'credit' | 'debit' | 'cash' | 'transfer')}
         />
 
         <Input

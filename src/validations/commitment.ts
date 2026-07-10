@@ -10,7 +10,7 @@ export const commitmentSchema = z.object({
   amount: z.number().positive('El monto debe ser mayor a 0'),
   currency: currencySchema,
   payment_method: z.enum(['debit', 'credit', 'cash', 'transfer']),
-  status: z.enum(['pending', 'completed']).optional().default('pending'),
+  status: z.enum(['pending', 'partial', 'completed']).optional().default('pending'),
   installments_count: z.number().int().min(1, 'Debe registrar al menos 1 cuota').optional().default(1),
 })
 

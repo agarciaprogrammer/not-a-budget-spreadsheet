@@ -1,6 +1,6 @@
 import { createBrowserSupabaseClient } from '@/lib/supabase/client'
 import { budgetService } from './budget.service'
-import { openingBalanceOverrideService, type OpeningBalanceOverride } from './openingBalanceOverride.service'
+import { type OpeningBalanceOverride } from './openingBalanceOverride.service'
 import { transactionSchema, type TransactionFormData } from '@/validations/transaction'
 import { formatDateToYYYYMMDD } from '@/lib/utils/date-utils'
 import { CURRENCIES, EXPENSE_KIND_REQUIRED_FROM, EXPENSE_KINDS, TRANSACTION_TYPES } from '@/lib/constants'
@@ -207,7 +207,7 @@ const buildTransactionPayload = (validatedData: TransactionFormData) => {
         exchange_rate: null,
         description: validatedData.description || null,
         expense_kind: validatedData.expense_kind ?? null,
-        payment_id: (validatedData as any).payment_id ?? null,
+        payment_id: validatedData.payment_id ?? null,
       }
     case TRANSACTION_TYPES.ADJUSTMENT:
       return {
@@ -261,22 +261,22 @@ export class TransactionService {
     let paymentId: string | null = null
     if (
       validatedData.type === 'expense' &&
-      (validatedData as any).installment_ids &&
-      (validatedData as any).installment_ids.length > 0
+      validatedData.installment_ids &&
+      validatedData.installment_ids.length > 0
     ) {
       paymentId = await commitmentService.registerPayment(userId, {
         amount: validatedData.amount,
         currency: validatedData.currency,
         date: validatedData.date,
         description: validatedData.description || undefined,
-        installmentIds: (validatedData as any).installment_ids,
+        installmentIds: validatedData.installment_ids,
       })
     }
 
     const payload = buildTransactionPayload({
       ...validatedData,
-      payment_id: paymentId || (validatedData.type === 'expense' ? (validatedData as any).payment_id : undefined),
-    } as any)
+      payment_id: paymentId || (validatedData.type === 'expense' ? (validatedData.payment_id ?? undefined) : undefined),
+    } as TransactionFormData)
 
     const { data, error } = await supabase
       .from('transactions')

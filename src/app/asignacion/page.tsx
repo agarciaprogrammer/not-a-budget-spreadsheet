@@ -33,7 +33,6 @@ export default function AsignacionPage() {
   // State for system historical information (editable mock data)
   const [gastosFijos, setGastosFijos] = useState('230000')
   const [gastosVariables, setGastosVariables] = useState('500000')
-  const [capitalDisponible, setCapitalDisponible] = useState('1850000')
 
   // Validation error states
   const [validationError, setValidationError] = useState<string | null>(null)
@@ -62,6 +61,11 @@ export default function AsignacionPage() {
     )
   }
 
+  const totalResources = resources.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0)
+  const fixedExpensesVal = parseFloat(gastosFijos) || 0
+  const variableExpensesVal = parseFloat(gastosVariables) || 0
+  const availableCapital = Math.max(0, totalResources - fixedExpensesVal)
+
   const resourceTypes = [
     { value: 'salary', label: t('patrimonio.asignacion.type_salary') },
     { value: 'bonus', label: t('patrimonio.asignacion.type_bonus') },
@@ -80,7 +84,7 @@ export default function AsignacionPage() {
 
   const handleRemoveResource = (id: string) => {
     if (resources.length === 1) {
-      setValidationError('Debes ingresar al menos un recurso.')
+      setValidationError('You must enter at least one resource.')
       return
     }
     setResources(prev => prev.filter(r => r.id !== id))
@@ -103,26 +107,26 @@ export default function AsignacionPage() {
 
   const handleConfirm = () => {
     const total = calculateTotalResources()
-
+    
     // Validation 4.1: Invalid income check
     if (total <= 0) {
-      setValidationError('El total de nuevos recursos debe ser mayor que 0.')
+      setValidationError('Total new resources must be greater than 0.')
       return
     }
 
-    // Validation 5.1: Insufficient/invalid period data checks
+    // Validation 5.1: Insufficient/invalid snapshot checks
     if (!gastosFijos || parseFloat(gastosFijos) < 0) {
-      setValidationError('Los Gastos Fijos no pueden ser negativos o estar vacíos.')
+      setValidationError('Fixed Expenses cannot be negative or empty.')
       return
     }
     if (!gastosVariables || parseFloat(gastosVariables) < 0) {
-      setValidationError('Los Gastos Variables no pueden ser negativos o estar vacíos.')
+      setValidationError('Previous Variable Expenses cannot be negative or empty.')
       return
     }
-    if (!capitalDisponible || parseFloat(capitalDisponible) < 0) {
-      setValidationError('El Capital Disponible no puede ser negativo o estar vacío.')
-      return
-    }
+
+    const fixedExpensesVal = parseFloat(gastosFijos) || 0
+    const variableExpensesVal = parseFloat(gastosVariables) || 0
+    const availableCapital = Math.max(0, total - fixedExpensesVal)
 
     // Save inputs to session storage for the results screen
     const allocationData = {
@@ -131,13 +135,13 @@ export default function AsignacionPage() {
         amount: parseFloat(r.amount) || 0
       })),
       totalResources: total,
-      gastosFijos: parseFloat(gastosFijos),
-      gastosVariables: parseFloat(gastosVariables),
-      capitalDisponible: parseFloat(capitalDisponible)
+      gastosFijos: fixedExpensesVal,
+      gastosVariables: variableExpensesVal,
+      availableCapital: availableCapital
     }
 
     sessionStorage.setItem('fos_allocation_input', JSON.stringify(allocationData))
-
+    
     // Navigate to results screen
     router.push('/asignacion/resultado')
   }
@@ -148,14 +152,14 @@ export default function AsignacionPage() {
       {/* Stepper / Breadcrumbs */}
       <div className="mb-6 flex flex-wrap items-center gap-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
         <Link href="/patrimonio" className="hover:text-indigo-600 transition flex items-center gap-1">
-          <span>🏦 Patrimonio</span>
+          <span>🏦 Wealth</span>
         </Link>
         <span className="text-gray-300">/</span>
         <span className="text-indigo-600 flex items-center gap-1">
-          <span>📝 Formulario de Asignación</span>
+          <span>📝 Wealth Allocation Form</span>
         </span>
         <span className="text-gray-300">/</span>
-        <span className="text-gray-400">📊 Propuesta</span>
+        <span className="text-gray-400">📊 Proposal</span>
       </div>
 
       {/* Header */}
@@ -165,7 +169,7 @@ export default function AsignacionPage() {
             {t('patrimonio.asignacion.title')}
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            FOS-001: Informá tus recursos y revisá los datos históricos del período.
+            FOS-001: Enter your new wealth resources and review the historical snapshot for allocation.
           </p>
         </div>
         <Button
@@ -223,13 +227,13 @@ export default function AsignacionPage() {
                       min="0"
                       value={resource.amount}
                       onChange={(e) => handleResourceChange(resource.id, 'amount', e.target.value)}
-                      placeholder="Monto"
+                      placeholder="Amount"
                     />
                     <Button
                       variant="danger"
                       onClick={() => handleRemoveResource(resource.id)}
                       className="p-2 min-h-[38px] flex items-center justify-center"
-                      title="Eliminar recurso"
+                      title="Delete resource"
                     >
                       <Trash2 size={16} />
                     </Button>
@@ -253,7 +257,7 @@ export default function AsignacionPage() {
                 <div className="group relative cursor-pointer text-gray-400 hover:text-indigo-600 transition-colors">
                   <HelpCircle size={16} />
                   <span className="absolute bottom-full right-0 w-64 bg-gray-900 text-white text-[11px] p-2.5 rounded-lg shadow-xl opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-200 z-50 normal-case leading-normal">
-                    Estos datos se obtienen automáticamente del historial bancario y de presupuesto. Si detectás que son incorrectos, podés editarlos antes de confirmar.
+                    This data is automatically retrieved from your financial tracker. If you detect any incorrect values, you can manually override them before running the wealth allocation.
                   </span>
                 </div>
               </div>
@@ -278,10 +282,12 @@ export default function AsignacionPage() {
               />
               <Input
                 label={t('patrimonio.asignacion.available_capital') + " ($)"}
-                type="number"
-                min="0"
-                value={capitalDisponible}
-                onChange={(e) => setCapitalDisponible(e.target.value)}
+                type="text"
+                value={availableCapital.toLocaleString('es-AR')}
+                readOnly
+                disabled
+                className="bg-gray-100 font-bold text-gray-700 cursor-not-allowed"
+                helperText="Formula: Total New Resources - Fixed Expenses"
               />
             </CardContent>
           </Card>
@@ -291,24 +297,30 @@ export default function AsignacionPage() {
             <CardContent className="p-6 space-y-4">
               <div className="space-y-2">
                 <span className="text-xs font-semibold text-indigo-700 uppercase tracking-wider">
-                  Resumen de Asignación
+                  Wealth Allocation Summary
                 </span>
                 <div className="flex justify-between items-center py-2 border-b border-indigo-100/50">
-                  <span className="text-sm text-gray-600 font-medium">Nuevos Ingresos Totales:</span>
+                  <span className="text-sm text-gray-600 font-medium">Total New Resources:</span>
                   <span className="text-base font-bold text-gray-900">
-                    ${calculateTotalResources().toLocaleString('es-AR')}
+                    ${totalResources.toLocaleString('es-AR')}
                   </span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-indigo-100/50">
-                  <span className="text-sm text-gray-600 font-medium">Gastos Estimados (Fijos + Var):</span>
-                  <span className="text-base font-bold text-gray-900">
-                    ${((parseFloat(gastosFijos) || 0) + (parseFloat(gastosVariables) || 0)).toLocaleString('es-AR')}
+                  <span className="text-sm text-gray-600 font-medium">Fixed Expenses:</span>
+                  <span className="text-base font-bold text-red-600">
+                    - ${fixedExpensesVal.toLocaleString('es-AR')}
                   </span>
                 </div>
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-sm text-indigo-800 font-bold">Capital a Distribuir:</span>
+                <div className="flex justify-between items-center py-2 border-b border-indigo-100/50 bg-indigo-50/50 px-2 rounded">
+                  <span className="text-sm text-indigo-800 font-bold">Available Capital:</span>
                   <span className="text-lg font-extrabold text-indigo-700">
-                    ${(parseFloat(capitalDisponible) || 0).toLocaleString('es-AR')}
+                    ${availableCapital.toLocaleString('es-AR')}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center pt-3 text-xs text-gray-500">
+                  <span className="font-medium">Previous Variable Expenses (Reference Only):</span>
+                  <span className="font-bold text-gray-700">
+                    ${variableExpensesVal.toLocaleString('es-AR')}
                   </span>
                 </div>
               </div>

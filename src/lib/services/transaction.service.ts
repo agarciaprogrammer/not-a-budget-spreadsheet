@@ -4,6 +4,7 @@ import { openingBalanceOverrideService, type OpeningBalanceOverride } from './op
 import { transactionSchema, type TransactionFormData } from '@/validations/transaction'
 import { formatDateToYYYYMMDD } from '@/lib/utils/date-utils'
 import { CURRENCIES, EXPENSE_KIND_REQUIRED_FROM, EXPENSE_KINDS, TRANSACTION_TYPES } from '@/lib/constants'
+import { commitmentService } from './commitment.service'
 
 const CATEGORY_COLORS = [
   '#3B82F6',
@@ -43,6 +44,7 @@ interface TransactionRow {
   description: string | null
   created_at: string
   expense_kind: 'fixed' | 'variable' | null
+  payment_id: string | null
   categories?: { name: string } | { name: string }[] | null
 }
 
@@ -63,6 +65,7 @@ export interface Transaction {
   description: string | null
   created_at: string
   expense_kind?: 'fixed' | 'variable' | null
+  payment_id?: string | null
   categories?: { name: string } | null
 }
 
@@ -79,6 +82,8 @@ export interface TransactionSummary {
   totalVariableExpenses: number
   totalExpenses: number
   netBalance: BalanceByCurrency
+  committedCapital: BalanceByCurrency
+  availableCapital: BalanceByCurrency
 }
 
 const EMPTY_BALANCE: BalanceByCurrency = {
@@ -141,6 +146,7 @@ const normalizeTransaction = (row: TransactionRow): Transaction => ({
   description: row.description,
   created_at: row.created_at,
   expense_kind: row.expense_kind,
+  payment_id: row.payment_id,
   categories: normalizeCategoryRelation(row.categories),
 })
 
@@ -201,6 +207,7 @@ const buildTransactionPayload = (validatedData: TransactionFormData) => {
         exchange_rate: null,
         description: validatedData.description || null,
         expense_kind: validatedData.expense_kind ?? null,
+        payment_id: (validatedData as any).payment_id ?? null,
       }
     case TRANSACTION_TYPES.ADJUSTMENT:
       return {
@@ -250,7 +257,26 @@ export class TransactionService {
     }
 
     const supabase = this.getSupabaseClient()
-    const payload = buildTransactionPayload(validatedData)
+
+    let paymentId: string | null = null
+    if (
+      validatedData.type === 'expense' &&
+      (validatedData as any).installment_ids &&
+      (validatedData as any).installment_ids.length > 0
+    ) {
+      paymentId = await commitmentService.registerPayment(userId, {
+        amount: validatedData.amount,
+        currency: validatedData.currency,
+        date: validatedData.date,
+        description: validatedData.description || undefined,
+        installmentIds: (validatedData as any).installment_ids,
+      })
+    }
+
+    const payload = buildTransactionPayload({
+      ...validatedData,
+      payment_id: paymentId || (validatedData.type === 'expense' ? (validatedData as any).payment_id : undefined),
+    } as any)
 
     const { data, error } = await supabase
       .from('transactions')
@@ -276,6 +302,7 @@ export class TransactionService {
         date,
         description,
         expense_kind,
+        payment_id,
         created_at,
         categories (
           name
@@ -333,6 +360,7 @@ export class TransactionService {
         date,
         description,
         expense_kind,
+        payment_id,
         created_at,
         categories (
           name
@@ -375,6 +403,18 @@ export class TransactionService {
 
   async deleteTransaction(transactionId: string, userId: string): Promise<void> {
     const supabase = this.getSupabaseClient()
+
+    // 1. Obtener la transacción para ver si tiene un payment_id asociado
+    const { data: txData, error: txError } = await supabase
+      .from('transactions')
+      .select('payment_id')
+      .eq('id', transactionId)
+      .eq('user_id', userId)
+      .single()
+
+    if (txError && txError.code !== 'PGRST116') throw txError
+
+    // 2. Eliminar la transacción
     const { error } = await supabase
       .from('transactions')
       .delete()
@@ -382,6 +422,11 @@ export class TransactionService {
       .eq('user_id', userId)
 
     if (error) throw error
+
+    // 3. Si tenía un pago asociado en el CSP, eliminarlo también para revertir los estados de las cuotas
+    if (txData && txData.payment_id) {
+      await commitmentService.deletePayment(txData.payment_id, userId)
+    }
   }
 
   async updateTransaction(
@@ -417,6 +462,7 @@ export class TransactionService {
         date,
         description,
         expense_kind,
+        payment_id,
         created_at,
         categories (
           name
@@ -457,6 +503,8 @@ export class TransactionService {
         totalVariableExpenses: 0,
         totalExpenses: 0,
         netBalance: cloneBalance(EMPTY_BALANCE),
+        committedCapital: cloneBalance(EMPTY_BALANCE),
+        availableCapital: cloneBalance(EMPTY_BALANCE),
       }
     }
 
@@ -482,6 +530,7 @@ export class TransactionService {
         date,
         description,
         expense_kind,
+        payment_id,
         created_at
       `)
       .eq('budget_id', budgetId)
@@ -594,6 +643,16 @@ export class TransactionService {
       })
     }
 
+    const committedCapital = await commitmentService.getCommittedCapital(userId, {
+      startDate,
+      endDate
+    })
+
+    const availableCapital = {
+      ARS: netBalance.ARS - committedCapital.ARS,
+      USD: netBalance.USD - committedCapital.USD
+    }
+
     return {
       openingBalance,
       totalIncome,
@@ -601,6 +660,8 @@ export class TransactionService {
       totalVariableExpenses,
       totalExpenses: totalFixedExpenses + totalVariableExpenses,
       netBalance,
+      committedCapital,
+      availableCapital,
     }
   }
 

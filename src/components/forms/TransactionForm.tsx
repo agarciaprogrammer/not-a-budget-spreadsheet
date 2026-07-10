@@ -6,6 +6,7 @@ import { Select, type SelectOption } from '@/components/ui/Select'
 import { Button } from '@/components/ui/Button'
 import { transactionService, type Category, type CurrencyCode, type TransactionType } from '@/lib/services/transaction.service'
 import { useAuth } from '@/components/providers/AuthProvider'
+import { commitmentService, type InstallmentWithCommitment } from '@/lib/services/commitment.service'
 import { formatDateToYYYYMMDD } from '@/lib/utils/date-utils'
 import { useTranslation } from '@/hooks/useTranslation'
 import { useCategoryTranslation } from '@/hooks/useCategoryTranslation'
@@ -120,6 +121,38 @@ export function TransactionForm({
   const { translateCategoryName } = useCategoryTranslation()
   const [formData, setFormData] = useState<TransactionFormState>(() => buildInitialState(initialData))
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [pendingInstallments, setPendingInstallments] = useState<InstallmentWithCommitment[]>([])
+  const [selectedInstallmentIds, setSelectedInstallmentIds] = useState<string[]>([])
+
+  useEffect(() => {
+    async function fetchPending() {
+      if (user && formData.type === TRANSACTION_TYPES.EXPENSE) {
+        try {
+          const insts = await commitmentService.getUserInstallments(user.id, { status: 'pending' })
+          setPendingInstallments(insts)
+        } catch (err) {
+          console.error('Error fetching pending installments for form:', err)
+        }
+      }
+    }
+    fetchPending()
+  }, [user, formData.type])
+
+  const handleInstallmentToggle = (id: string, checked: boolean) => {
+    setSelectedInstallmentIds((prev) => {
+      const next = checked ? [...prev, id] : prev.filter((i) => i !== id)
+      
+      const totalAmount = pendingInstallments
+        .filter((inst) => next.includes(inst.id))
+        .reduce((sum, inst) => sum + inst.amount, 0)
+      
+      if (totalAmount > 0) {
+        setFormData((f) => ({ ...f, amount: totalAmount }))
+      }
+      
+      return next
+    })
+  }
 
   const expenseKindRequired =
     formData.type === TRANSACTION_TYPES.EXPENSE && formData.date >= EXPENSE_KIND_REQUIRED_FROM
@@ -256,7 +289,8 @@ export function TransactionForm({
           amount: formData.amount,
           currency: formData.currency,
           expense_kind: formData.expense_kind || undefined,
-        }
+          installment_ids: selectedInstallmentIds.length > 0 ? selectedInstallmentIds : undefined,
+        } as any
         break
       case TRANSACTION_TYPES.TRANSFER:
         payload = {
@@ -416,6 +450,35 @@ export function TransactionForm({
                 placeholder={t('form.transaction.category.placeholder')}
                 required
               />
+
+              {formData.type === TRANSACTION_TYPES.EXPENSE && pendingInstallments.length > 0 && (
+                <div className="border p-3 rounded bg-gray-50 text-xs my-2 space-y-2">
+                  <label className="block font-semibold text-gray-700">
+                    Asociar a Cuotas Pendientes (opcional)
+                  </label>
+                  <div className="space-y-2 max-h-32 overflow-y-auto">
+                    {pendingInstallments.map((inst) => (
+                      <label key={inst.id} className="flex items-center gap-2 cursor-pointer hover:bg-gray-100 p-1 rounded">
+                        <input
+                          type="checkbox"
+                          checked={selectedInstallmentIds.includes(inst.id)}
+                          onChange={(e) => handleInstallmentToggle(inst.id, e.target.checked)}
+                          className="rounded text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-gray-700">
+                          <strong>{inst.commitments?.description}</strong> (Cuota {inst.installment_number}/{inst.total_installments}) —{' '}
+                          <span className="font-semibold text-amber-600">{inst.amount} {inst.commitments?.currency}</span>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                  {selectedInstallmentIds.length > 0 && (
+                    <p className="text-[10px] text-blue-600 italic">
+                      Se auto-completará el monto total de las cuotas seleccionadas.
+                    </p>
+                  )}
+                </div>
+              )}
 
               <Input
                 label={t('form.transaction.amount')}

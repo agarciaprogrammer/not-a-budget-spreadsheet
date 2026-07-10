@@ -33,9 +33,10 @@ export default function AddTransactionModal({
       await transactionService.createTransaction(user.id, formData)
       onTransactionAdded()
       onClose()
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding transaction:', error)
-      setError(error instanceof Error ? error.message : t('transactions.add.error'))
+      const message = error?.message || error?.details || t('transactions.add.error')
+      setError(message)
     } finally {
       setLoading(false)
     }

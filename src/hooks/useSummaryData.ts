@@ -19,6 +19,14 @@ export function useSummaryData(refreshTrigger: number) {
       ARS: 0,
       USD: 0,
     },
+    committedCapital: {
+      ARS: 0,
+      USD: 0,
+    },
+    availableCapital: {
+      ARS: 0,
+      USD: 0,
+    },
   })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)

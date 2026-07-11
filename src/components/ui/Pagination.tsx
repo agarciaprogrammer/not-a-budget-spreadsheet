@@ -9,6 +9,7 @@ interface PaginationProps {
   pageSize: number
   onPageChange: (page: number) => void
   className?: string
+  itemLabel?: string
 }
 
 export function Pagination({ 
@@ -17,7 +18,8 @@ export function Pagination({
   totalItems, 
   pageSize, 
   onPageChange,
-  className = ''
+  className = '',
+  itemLabel = 'transactions'
 }: PaginationProps) {
   if (totalPages <= 1) return null
 
@@ -67,7 +69,7 @@ export function Pagination({
     <div className={`flex flex-col sm:flex-row items-center justify-between gap-4 ${className}`}>
       {/* Results info */}
       <div className="text-sm text-gray-700">
-        Showing {startItem}–{endItem} of {totalItems} transactions
+        Showing {startItem}–{endItem} of {totalItems} {itemLabel}
       </div>
 
       {/* Pagination controls */}

@@ -1,35 +1,378 @@
 @import "tailwindcss";
 
+/* ─── Casio F-91W Design System ─────────────────────────────────────────── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Backgrounds */
+  --bg-base:       #0a0b0e;
+  --bg-surface:    #111318;
+  --bg-panel:      #161a22;
+  --bg-raised:     #1c2130;
+  --bg-hover:      #222840;
+
+  /* Borders */
+  --border-subtle: #1e2535;
+  --border-default:#2a3348;
+  --border-strong: #3a4a65;
+
+  /* Text */
+  --text-primary:  #e8ecf4;
+  --text-secondary:#7a8ba8;
+  --text-muted:    #4a5870;
+  --text-disabled: #2e3a50;
+
+  /* Brand — Casio blue */
+  --casio-blue:    #2e7fff;
+  --casio-blue-dim:#1a4d9e;
+  --casio-blue-glow: rgba(46, 127, 255, 0.15);
+
+  /* Status colors */
+  --green-lcd:     #00e676;    /* positive states only */
+  --green-lcd-dim: #004d28;
+  --yellow-warn:   #ffca28;    /* warnings */
+  --yellow-warn-dim:#3d2e00;
+  --red-alert:     #ff3d3d;    /* errors only */
+  --red-alert-dim: #3d0a0a;
+
+  /* Typography */
+  --font-mono:     'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* ─── Reset & Base ──────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  background: var(--bg-base);
+  color: var(--text-primary);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Extra small devices (portrait phones, less than 576px) */
-@media (max-width: 480px) {
-  canvas,
-  svg { 
-    max-width: 100% !important;
+/* ─── Scrollbar (dark) ──────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: var(--bg-base); }
+::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
+
+/* ─── Selection ─────────────────────────────────────────────────────────── */
+::selection {
+  background: var(--casio-blue-dim);
+  color: var(--text-primary);
+}
+
+/* ─── Focus ─────────────────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 1px solid var(--casio-blue);
+  outline-offset: 2px;
+}
+
+/* ─── Global canvas/svg constraints ────────────────────────────────────── */
+canvas, svg {
+  max-width: 100% !important;
+}
+
+/* ─── Transitions ───────────────────────────────────────────────────────── */
+.transition-fade {
+  transition: opacity 150ms ease, transform 150ms ease;
+}
+
+/* ─── Casio component primitives ────────────────────────────────────────── */
+
+/* Surface card */
+.c-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+}
+
+/* Widget — clickable surface */
+.c-widget {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+.c-widget:hover {
+  border-color: var(--casio-blue);
+  background: var(--bg-raised);
+}
+
+/* Panel label */
+.c-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+/* Monospace value */
+.c-value {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Divider */
+.c-divider {
+  border: none;
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* Status dot */
+.c-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+.c-dot--green  { background: var(--green-lcd); box-shadow: 0 0 6px var(--green-lcd); }
+.c-dot--yellow { background: var(--yellow-warn); box-shadow: 0 0 6px var(--yellow-warn); }
+.c-dot--red    { background: var(--red-alert); box-shadow: 0 0 6px var(--red-alert); }
+.c-dot--blue   { background: var(--casio-blue); box-shadow: 0 0 6px var(--casio-blue); }
+
+/* Quick action button */
+.c-action-btn {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: border-color 100ms ease, color 100ms ease, background 100ms ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+.c-action-btn:hover {
+  border-color: var(--casio-blue);
+  color: var(--casio-blue);
+  background: var(--casio-blue-glow);
+}
+.c-action-btn:active {
+  transform: scale(0.98);
+}
+
+/* Modal overlay */
+.c-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(3px);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 120ms ease;
+}
+
+.c-modal {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: slideUp 180ms ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Progress bar */
+.c-progress-track {
+  height: 3px;
+  background: var(--border-default);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.c-progress-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 400ms ease;
+}
+
+/* Alert banner */
+.c-alert {
+  border-radius: 6px;
+  padding: 10px 14px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.c-alert--warn {
+  background: var(--yellow-warn-dim);
+  border: 1px solid rgba(255, 202, 40, 0.3);
+  color: var(--yellow-warn);
+}
+.c-alert--ok {
+  background: var(--green-lcd-dim);
+  border: 1px solid rgba(0, 230, 118, 0.2);
+  color: var(--green-lcd);
+}
+.c-alert--error {
+  background: var(--red-alert-dim);
+  border: 1px solid rgba(255, 61, 61, 0.3);
+  color: var(--red-alert);
+}
+
+/* Activity row */
+.c-activity-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-subtle);
+  transition: opacity 100ms ease;
+}
+.c-activity-row:last-child {
+  border-bottom: none;
+}
+.c-activity-row:hover {
+  opacity: 0.8;
+}
+
+/* Nav sidebar */
+.c-nav {
+  background: var(--bg-surface);
+  border-right: 1px solid var(--border-subtle);
+}
+
+.c-nav-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 6px;
+  color: var(--text-muted);
+  transition: color 100ms ease, background 100ms ease;
+}
+.c-nav-link:hover {
+  color: var(--text-primary);
+  background: var(--bg-raised);
+}
+.c-nav-link.active {
+  color: var(--casio-blue);
+  background: var(--casio-blue-glow);
+}
+
+/* Input dark */
+.c-input {
+  background: var(--bg-base);
+  border: 1px solid var(--border-default);
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-size: 13px;
+  padding: 8px 12px;
+  width: 100%;
+  transition: border-color 100ms ease;
+}
+.c-input:focus {
+  outline: none;
+  border-color: var(--casio-blue);
+}
+.c-input::placeholder {
+  color: var(--text-disabled);
+}
+
+/* Button variants */
+.c-btn {
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: all 100ms ease;
+  border: 1px solid transparent;
+}
+.c-btn--primary {
+  background: var(--casio-blue);
+  color: #fff;
+}
+.c-btn--primary:hover {
+  background: #1a6ee0;
+}
+.c-btn--ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border-color: var(--border-default);
+}
+.c-btn--ghost:hover {
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+
+/* Month selector */
+.c-month-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 18px;
+  line-height: 1;
+  transition: color 100ms ease, background 100ms ease;
+}
+.c-month-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-raised);
+}
+
+/* ─── Contextual Sidebar: Home vs Workspace mode ─────────────────────── */
+/*
+  When body[data-mode="home"]:
+  - Desktop sidebar fades out + slides left
+  - The content offset (md:ml-14) is removed via override
+  When body[data-mode="workspace"] (default):
+  - Sidebar is fully visible
+*/
+
+/* Desktop sidebar transition */
+@media (min-width: 768px) {
+  .c-nav {
+    transition: opacity 300ms ease, transform 300ms ease;
   }
 
+  body[data-mode="home"] .c-nav {
+    opacity: 0;
+    transform: translateX(-100%);
+    pointer-events: none;
+  }
+
+  /* Remove the ml-14 offset when Home is active */
+  body[data-mode="home"] .md\:ml-14 {
+    margin-left: 0 !important;
+  }
+}
+
+/* Mobile top bar: hide when in home mode */
+body[data-mode="home"] header.md\:hidden {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 300ms ease;
 }

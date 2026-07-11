@@ -1,216 +1,149 @@
 'use client'
 
-import { useState } from 'react'
-import { useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/providers/AuthProvider'
-import { LoadingState } from '@/components/ui/LoadingState'
 import { ErrorState } from '@/components/ui/ErrorState'
-import { PageContainer } from '@/components/layout/PageContainer'
-import { Card, CardHeader, CardContent } from '@/components/layout/Card'
-import { Button } from '@/components/ui/Button'
-import AddTransactionModal from '@/components/transactions/AddTransactionModal'
-import TransactionTable from '@/components/transactions/TransactionTable'
-import SummaryCards from '@/components/dashboard/SummaryCards'
-import CategoryPieChart from '@/components/dashboard/CategoryPieChart'
-import IncomeExpenseLineChart from '@/components/dashboard/IncomeExpenseLineChart'
-import WeeklySpendingChart from '@/components/dashboard/WeeklySpendingChart'
-import MonthlyLimitCard from '@/components/dashboard/MonthlyLimitCard'
 import { DashboardDateProvider } from '@/components/providers/DashboardDateProvider'
-import MonthSelector from '@/components/dashboard/MonthSelector'
-import { useTranslation } from '@/hooks/useTranslation'
+import AddTransactionModal from '@/components/transactions/AddTransactionModal'
 import AddCommitmentModal from '@/components/transactions/AddCommitmentModal'
-import CommitmentsList from '@/components/transactions/CommitmentsList'
-import InstallmentsCalendar from '@/components/transactions/InstallmentsCalendar'
+
+import HomeScreen from '@/components/dashboard/home/HomeScreen'
+import WorkspaceSection from '@/components/dashboard/workspace/WorkspaceSection'
+
+import NetWorthModal from '@/components/dashboard/modals/NetWorthModal'
+import CommitmentsModal from '@/components/dashboard/modals/CommitmentsModal'
+import SpendingModal from '@/components/dashboard/modals/SpendingModal'
+import MonthlyLimitModal from '@/components/dashboard/modals/MonthlyLimitModal'
+
+export type ModalType = 'networth' | 'commitments' | 'spending' | 'limit' | null
 
 export default function DashboardPage() {
   const { user, loading, error } = useAuth()
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [isCommitmentModalOpen, setIsCommitmentModalOpen] = useState(false)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
-  const { t } = useTranslation()
+  const [activeModal, setActiveModal] = useState<ModalType>(null)
+  const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false)
+  const [isCommitmentModalOpen, setIsCommitmentModalOpen] = useState(false)
 
+  const refresh = useCallback(() => setRefreshTrigger(p => p + 1), [])
+
+  // Sidebar contextual: home mode = sidebar oculto, workspace = visible
   useEffect(() => {
-    const handler = () => setRefreshTrigger(prev => prev + 1)
-    window.addEventListener('openingBalanceOverride:changed', handler)
-    return () => window.removeEventListener('openingBalanceOverride:changed', handler)
+    // Modo inicial: Home
+    document.body.dataset.mode = 'home'
+
+    const el = document.getElementById('workspace')
+    if (!el) return
+
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        document.body.dataset.mode = entry.isIntersecting ? 'workspace' : 'home'
+      },
+      { threshold: 0.15 }
+    )
+    obs.observe(el)
+    return () => {
+      obs.disconnect()
+      // Limpiar al desmontar para no afectar otras páginas
+      delete document.body.dataset.mode
+    }
   }, [])
 
-  const handleTransactionAdded = () => {
-    setRefreshTrigger(prev => prev + 1)
-  }
+  useEffect(() => {
+    const handler = () => refresh()
+    window.addEventListener('openingBalanceOverride:changed', handler)
+    return () => window.removeEventListener('openingBalanceOverride:changed', handler)
+  }, [refresh])
 
-  const handleOpenModal = () => {
-    setIsModalOpen(true)
-  }
-
-  const handleCloseModal = () => {
-    setIsModalOpen(false)
-  }
-
-  // Estados de autenticación
   if (loading) {
-    return <LoadingState message={t('dashboard.loading')} className="min-h-screen" />
-  }
-
-  if (error) {
     return (
-      <ErrorState 
-        title={t('dashboard.auth.error.title')}
-        message={error}
-        className="min-h-screen"
-      />
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-base)' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.15em', color: 'var(--text-muted)', marginBottom: 8 }}>
+            LOADING
+          </div>
+          <div style={{ width: 120, height: 2, background: 'var(--border-subtle)', borderRadius: 1, overflow: 'hidden' }}>
+            <div style={{ height: '100%', background: 'var(--casio-blue)', borderRadius: 1, animation: 'loadbar 1.2s ease infinite' }} />
+          </div>
+          <style>{`@keyframes loadbar { 0% { width: 0%; margin-left: 0 } 50% { width: 70%; } 100% { width: 0%; margin-left: 100% } }`}</style>
+        </div>
+      </div>
     )
   }
 
-  if (!user) {
-    return (
-      <ErrorState 
-        title={t('dashboard.access.denied.title')}
-        message={t('dashboard.access.denied.message')}
-        className="min-h-screen"
-      />
-    )
-  }
+  if (error) return <ErrorState title="Authentication Error" message={error} className="min-h-screen" />
+  if (!user) return <ErrorState title="Access Denied" message="Please sign in to access the dashboard." className="min-h-screen" />
 
   return (
     <DashboardDateProvider>
-      <PageContainer>
-        <MonthSelector />
-        <SummaryCards refreshTrigger={refreshTrigger} />
-
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 my-8">
-          <CategoryPieChart refreshTrigger={refreshTrigger} />
-          <IncomeExpenseLineChart refreshTrigger={refreshTrigger} />
-          <WeeklySpendingChart refreshTrigger={refreshTrigger} />
-        </div>
-        
-        {/* Monthly Limit Card */}
-        <div className="my-8">
-          <MonthlyLimitCard userId={user.id} refreshTrigger={refreshTrigger} />
-        </div>
-        
-        <div className="space-y-8">
-          <TransactionsPanel
-            onOpenModal={handleOpenModal}
+      <div
+        style={{
+          background: 'var(--bg-base)',
+          height: '100vh',
+          overflowY: 'auto',
+          scrollSnapType: 'y mandatory',
+          scrollBehavior: 'smooth',
+        }}
+      >
+        {/* ── HOME — Status Screen (full viewport, snap start) ─── */}
+        <section style={{ scrollSnapAlign: 'start', height: '100vh', overflow: 'hidden' }}>
+          <HomeScreen
+            user={user}
             refreshTrigger={refreshTrigger}
-            onAddTransaction={handleOpenModal}
-            onRefresh={handleTransactionAdded}
+            onOpenNetWorth={() => setActiveModal('networth')}
+            onAddTransaction={() => setIsTransactionModalOpen(true)}
+            onAddCommitment={() => setIsCommitmentModalOpen(true)}
           />
+        </section>
 
-          <CommitmentsPanel
-            onOpenModal={() => setIsCommitmentModalOpen(true)}
+        {/* ── WORKSPACE — Tool mode (snap start) ──────────────── */}
+        <section style={{ scrollSnapAlign: 'start', minHeight: '100vh' }}>
+          <WorkspaceSection
             refreshTrigger={refreshTrigger}
-            onRefresh={() => setRefreshTrigger(prev => prev + 1)}
+            onAddTransaction={() => setIsTransactionModalOpen(true)}
+            onRefresh={refresh}
+            onOpenNetWorth={() => setActiveModal('networth')}
+            onOpenCommitments={() => setActiveModal('commitments')}
+            onOpenLimit={() => setActiveModal('limit')}
           />
-        </div>
+        </section>
+      </div>
 
-        <AddTransactionModal
-          isOpen={isModalOpen}
-          onClose={handleCloseModal}
-          onTransactionAdded={handleTransactionAdded}
-        />
+      {/* ── Modales de detalle ────────────────────────────────── */}
+      <NetWorthModal
+        isOpen={activeModal === 'networth'}
+        onClose={() => setActiveModal(null)}
+        refreshTrigger={refreshTrigger}
+        onSaved={refresh}
+      />
+      <CommitmentsModal
+        isOpen={activeModal === 'commitments'}
+        onClose={() => setActiveModal(null)}
+        refreshTrigger={refreshTrigger}
+        onRefresh={refresh}
+      />
+      <SpendingModal
+        isOpen={activeModal === 'spending'}
+        onClose={() => setActiveModal(null)}
+        refreshTrigger={refreshTrigger}
+      />
+      <MonthlyLimitModal
+        isOpen={activeModal === 'limit'}
+        onClose={() => setActiveModal(null)}
+        userId={user.id}
+        refreshTrigger={refreshTrigger}
+      />
 
-        <AddCommitmentModal
-          isOpen={isCommitmentModalOpen}
-          onClose={() => setIsCommitmentModalOpen(false)}
-          onCommitmentAdded={() => setRefreshTrigger(prev => prev + 1)}
-        />
-      </PageContainer>
+      {/* ── Modales de formulario ─────────────────────────────── */}
+      <AddTransactionModal
+        isOpen={isTransactionModalOpen}
+        onClose={() => setIsTransactionModalOpen(false)}
+        onTransactionAdded={refresh}
+      />
+      <AddCommitmentModal
+        isOpen={isCommitmentModalOpen}
+        onClose={() => setIsCommitmentModalOpen(false)}
+        onCommitmentAdded={refresh}
+      />
     </DashboardDateProvider>
-  )
-}
-
-function TransactionsPanel({
-  onOpenModal,
-  refreshTrigger,
-  onAddTransaction,
-  onRefresh,
-}: {
-  onOpenModal: () => void
-  refreshTrigger: number
-  onAddTransaction: () => void
-  onRefresh: () => void
-}) {
-  const { t } = useTranslation()
-  
-  return (
-    <Card>
-      <CardHeader>
-        <div className="flex justify-between items-center">
-          <h2 className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">{t('dashboard.recent.transactions')}</h2>
-          <Button onClick={onOpenModal}>
-            + {t('transactions.add.button')}
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <TransactionTable 
-          refreshTrigger={refreshTrigger} 
-          onAddTransaction={onAddTransaction}
-          onRefresh={onRefresh}
-        />
-      </CardContent>
-    </Card>
-  )
-}
-
-function CommitmentsPanel({
-  onOpenModal,
-  refreshTrigger,
-  onRefresh,
-}: {
-  onOpenModal: () => void
-  refreshTrigger: number
-  onRefresh: () => void
-}) {
-  const [activeTab, setActiveTab] = useState<'list' | 'calendar'>('list')
-
-  return (
-    <Card>
-      <CardHeader>
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-          <div className="flex items-center gap-4">
-            <h2 className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Compromisos y Cuotas</h2>
-            <div className="flex bg-gray-100 p-0.5 rounded-lg text-xs font-medium">
-              <button
-                onClick={() => setActiveTab('list')}
-                className={`px-3 py-1 rounded-md transition-colors ${
-                  activeTab === 'list'
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-500 hover:text-gray-900'
-                }`}
-              >
-                Mis Compromisos
-              </button>
-              <button
-                onClick={() => setActiveTab('calendar')}
-                className={`px-3 py-1 rounded-md transition-colors ${
-                  activeTab === 'calendar'
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-500 hover:text-gray-900'
-                }`}
-              >
-                Calendario de Cuotas
-              </button>
-            </div>
-          </div>
-          <Button onClick={onOpenModal}>
-            + Registrar Compromiso
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent>
-        {activeTab === 'list' ? (
-          <CommitmentsList 
-            refreshTrigger={refreshTrigger} 
-            onRefresh={onRefresh}
-          />
-        ) : (
-          <InstallmentsCalendar 
-            refreshTrigger={refreshTrigger} 
-          />
-        )}
-      </CardContent>
-    </Card>
   )
 }

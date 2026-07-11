@@ -367,23 +367,6 @@ export class CommitmentService {
 
   async deleteCommitment(commitmentId: string, userId: string): Promise<void> {
     const supabase = this.getSupabaseClient()
-    
-    const { data: commitment, error: fetchError } = await supabase
-      .from('commitments')
-      .select('status')
-      .eq('id', commitmentId)
-      .eq('user_id', userId)
-      .single()
-
-    if (fetchError) throw fetchError
-    if (commitment) {
-      if (commitment.status === 'completed') {
-        throw new Error('No se puede eliminar un compromiso ya completado')
-      }
-      if (commitment.status === 'partial') {
-        throw new Error('No se puede eliminar un compromiso parcialmente pagado (debe completarse o revertirse transaccionalmente)')
-      }
-    }
 
     const { error } = await supabase
       .from('commitments')

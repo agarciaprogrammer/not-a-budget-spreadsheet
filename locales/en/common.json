@@ -230,6 +230,10 @@
     "access.denied.title": "Access Denied",
     "access.denied.message": "You must be logged in to view the dashboard.",
     "recent.transactions": "Recent Transactions",
+    "sections": {
+      "monthly_flow": "Monthly Flow / Operations",
+      "capital_position": "Wealth & Capital"
+    },
     "opening.balance": "Opening Balance",
     "total.income": "Total Income",
     "total.expenses": "Total Expenses",

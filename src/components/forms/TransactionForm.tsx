@@ -1,9 +1,6 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { Input } from '@/components/ui/Input'
-import { Select, type SelectOption } from '@/components/ui/Select'
-import { Button } from '@/components/ui/Button'
 import { transactionService, type Category, type CurrencyCode, type TransactionType } from '@/lib/services/transaction.service'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { commitmentService, type InstallmentWithCommitment } from '@/lib/services/commitment.service'
@@ -11,10 +8,11 @@ import { formatDateToYYYYMMDD } from '@/lib/utils/date-utils'
 import { useTranslation } from '@/hooks/useTranslation'
 import { useCategoryTranslation } from '@/hooks/useCategoryTranslation'
 import { CURRENCIES, EXPENSE_KIND_REQUIRED_FROM, EXPENSE_KINDS, TRANSACTION_TYPES } from '@/lib/constants'
+import { formatCurrency } from '@/lib/utils/formatters'
 import type { TransactionFormData } from '@/validations/transaction'
 
 interface TransactionFormState {
-  type: TransactionType
+  type: TransactionType | ''
   date: string
   description: string
   category_id: string
@@ -36,76 +34,7 @@ interface TransactionFormProps {
   loadingLabel?: string
 }
 
-const currencyOptions: SelectOption[] = [
-  { value: CURRENCIES.ARS, label: CURRENCIES.ARS },
-  { value: CURRENCIES.USD, label: CURRENCIES.USD },
-]
-
-const buildInitialState = (initialData?: Partial<TransactionFormData>): TransactionFormState => {
-  const baseState: TransactionFormState = {
-    type: TRANSACTION_TYPES.EXPENSE,
-    date: formatDateToYYYYMMDD(new Date()),
-    description: '',
-    category_id: '',
-    amount: 0,
-    currency: CURRENCIES.ARS,
-    expense_kind: '',
-    from_currency: CURRENCIES.ARS,
-    from_amount: 0,
-    to_currency: CURRENCIES.USD,
-    to_amount: 0,
-  }
-
-  if (!initialData) {
-    return baseState
-  }
-
-  switch (initialData.type) {
-    case TRANSACTION_TYPES.INCOME:
-      return {
-        ...baseState,
-        type: initialData.type,
-        date: initialData.date ?? baseState.date,
-        description: initialData.description ?? '',
-        category_id: initialData.category_id ?? '',
-        amount: initialData.amount ?? 0,
-        currency: initialData.currency ?? CURRENCIES.ARS,
-      }
-    case TRANSACTION_TYPES.EXPENSE:
-      return {
-        ...baseState,
-        type: initialData.type,
-        date: initialData.date ?? baseState.date,
-        description: initialData.description ?? '',
-        category_id: initialData.category_id ?? '',
-        amount: initialData.amount ?? 0,
-        currency: initialData.currency ?? CURRENCIES.ARS,
-        expense_kind: initialData.expense_kind ?? '',
-      }
-    case TRANSACTION_TYPES.ADJUSTMENT:
-      return {
-        ...baseState,
-        type: initialData.type,
-        date: initialData.date ?? baseState.date,
-        description: initialData.description ?? '',
-        amount: initialData.amount ?? 0,
-        currency: initialData.currency ?? CURRENCIES.ARS,
-      }
-    case TRANSACTION_TYPES.TRANSFER:
-      return {
-        ...baseState,
-        type: initialData.type,
-        date: initialData.date ?? baseState.date,
-        description: initialData.description ?? '',
-        from_currency: initialData.from_currency ?? CURRENCIES.ARS,
-        from_amount: initialData.from_amount ?? 0,
-        to_currency: initialData.to_currency ?? CURRENCIES.USD,
-        to_amount: initialData.to_amount ?? 0,
-      }
-    default:
-      return baseState
-  }
-}
+const currencyOptions = [CURRENCIES.ARS, CURRENCIES.USD]
 
 export function TransactionForm({
   onSubmit,
@@ -119,10 +48,29 @@ export function TransactionForm({
   const [categories, setCategories] = useState<Category[]>([])
   const { t } = useTranslation()
   const { translateCategoryName } = useCategoryTranslation()
-  const [formData, setFormData] = useState<TransactionFormState>(() => buildInitialState(initialData))
+  const [step, setStep] = useState<number>(initialData?.type ? 1 : 0) // 0: Selección de intención, 1: Formulario
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [pendingInstallments, setPendingInstallments] = useState<InstallmentWithCommitment[]>([])
   const [selectedInstallmentIds, setSelectedInstallmentIds] = useState<string[]>([])
+
+  const [formData, setFormData] = useState<TransactionFormState>(() => {
+    const init = (initialData ?? {}) as any
+    const base = {
+      type: (init.type ?? '') as TransactionType | '',
+      date: init.date ?? formatDateToYYYYMMDD(new Date()),
+      description: init.description ?? '',
+      category_id: init.category_id ?? '',
+      amount: init.amount ?? 0,
+      currency: init.currency ?? CURRENCIES.ARS,
+      expense_kind: init.expense_kind ?? '',
+      from_currency: init.from_currency ?? CURRENCIES.ARS,
+      from_amount: init.from_amount ?? 0,
+      to_currency: init.to_currency ?? CURRENCIES.USD,
+      to_amount: init.to_amount ?? 0,
+    }
+    return base
+  })
+
 
   useEffect(() => {
     async function fetchPending() {
@@ -131,7 +79,7 @@ export function TransactionForm({
           const insts = await commitmentService.getUserInstallments(user.id, { status: 'pending' })
           setPendingInstallments(insts)
         } catch (err) {
-          console.error('Error fetching pending installments for form:', err)
+          console.error('Error fetching pending installments:', err)
         }
       }
     }
@@ -141,15 +89,12 @@ export function TransactionForm({
   const handleInstallmentToggle = (id: string, checked: boolean) => {
     setSelectedInstallmentIds((prev) => {
       const next = checked ? [...prev, id] : prev.filter((i) => i !== id)
-      
       const totalAmount = pendingInstallments
         .filter((inst) => next.includes(inst.id))
         .reduce((sum, inst) => sum + inst.amount, 0)
-      
       if (totalAmount > 0) {
         setFormData((f) => ({ ...f, amount: totalAmount }))
       }
-      
       return next
     })
   }
@@ -161,20 +106,12 @@ export function TransactionForm({
     if (formData.type === TRANSACTION_TYPES.INCOME) {
       return categories.filter((category) => !category.expense_kind)
     }
-
     if (formData.type !== TRANSACTION_TYPES.EXPENSE) {
       return []
     }
-
     return categories.filter((category) => {
-      if (!category.expense_kind) {
-        return false
-      }
-
-      if (!formData.expense_kind) {
-        return true
-      }
-
+      if (!category.expense_kind) return false
+      if (!formData.expense_kind) return true
       return category.expense_kind === formData.expense_kind
     })
   }, [categories, formData.type, formData.expense_kind])
@@ -182,7 +119,6 @@ export function TransactionForm({
   useEffect(() => {
     const loadCategories = async () => {
       if (!user) return
-
       try {
         const userCategories = await transactionService.getUserCategories(user.id)
         setCategories(userCategories)
@@ -190,7 +126,6 @@ export function TransactionForm({
         console.error('Error loading categories:', error)
       }
     }
-
     loadCategories()
   }, [user])
 
@@ -204,16 +139,13 @@ export function TransactionForm({
       }
       return
     }
-
     if (filteredCategories.length === 0) {
       if (formData.category_id) {
         setFormData((prev) => ({ ...prev, category_id: '' }))
       }
       return
     }
-
     const categoryStillValid = filteredCategories.some((category) => category.id === formData.category_id)
-
     if (!categoryStillValid) {
       setFormData((prev) => ({ ...prev, category_id: filteredCategories[0]?.id ?? '' }))
     }
@@ -221,50 +153,40 @@ export function TransactionForm({
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {}
-
     if (!formData.date) {
       newErrors.date = t('form.validation.date.required')
     }
-
     if (formData.type === TRANSACTION_TYPES.INCOME || formData.type === TRANSACTION_TYPES.EXPENSE) {
       if (!formData.category_id) {
         newErrors.category_id = t('form.validation.category.required')
       }
-
       if (!formData.amount || formData.amount <= 0) {
         newErrors.amount = t('form.validation.amount.required')
       }
-
       if (formData.type === TRANSACTION_TYPES.EXPENSE && expenseKindRequired && !formData.expense_kind) {
         newErrors.expense_kind = t('form.validation.expenseKind.required')
       }
     }
-
     if (formData.type === TRANSACTION_TYPES.TRANSFER) {
       if (!formData.from_amount || formData.from_amount <= 0) {
         newErrors.from_amount = t('form.validation.amount.required')
       }
-
       if (!formData.to_amount || formData.to_amount <= 0) {
         newErrors.to_amount = t('form.validation.amount.required')
       }
-
       if (formData.from_currency === formData.to_currency) {
         newErrors.to_currency = t('form.validation.transferCurrencyDifferent')
       }
     }
-
     if (formData.type === TRANSACTION_TYPES.ADJUSTMENT && formData.amount === 0) {
       newErrors.amount = t('form.validation.adjustmentAmount.required')
     }
-
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
     if (!validateForm()) return
 
     let payload: TransactionFormData
@@ -312,6 +234,8 @@ export function TransactionForm({
           currency: formData.currency,
         }
         break
+      default:
+        return
     }
 
     try {
@@ -321,275 +245,461 @@ export function TransactionForm({
     }
   }
 
-  const categoryOptions: SelectOption[] = filteredCategories.map((category) => ({
-    value: category.id,
-    label: translateCategoryName(category.name),
-  }))
-
   const effectiveExchangeRate =
     formData.type === TRANSACTION_TYPES.TRANSFER && formData.to_amount > 0
       ? formData.from_amount / formData.to_amount
       : null
 
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          {t('form.transaction.type')}
-        </label>
-        <div className="grid grid-cols-2 gap-3">
-          {[
-            { value: TRANSACTION_TYPES.EXPENSE, label: t('form.transaction.expense') },
-            { value: TRANSACTION_TYPES.INCOME, label: t('form.transaction.income') },
-            { value: TRANSACTION_TYPES.TRANSFER, label: t('form.transaction.transfer') },
-            { value: TRANSACTION_TYPES.ADJUSTMENT, label: t('form.transaction.adjustment') },
-          ].map((option) => (
-            <label key={option.value} className="flex items-center text-gray-700">
-              <input
-                type="radio"
-                name="type"
-                value={option.value}
-                checked={formData.type === option.value}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    type: e.target.value as TransactionType,
-                    category_id: '',
-                    expense_kind: '',
-                  }))
-                }
-                className="mr-2"
-              />
-              {option.label}
-            </label>
-          ))}
+  // Paso 0: Selección de Intención
+  if (step === 0) {
+    return (
+      <div style={{ padding: '8px 4px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+        <div>
+          <h3 style={{
+            fontSize: 14,
+            fontFamily: 'var(--font-mono)',
+            color: 'var(--text-secondary)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.08em',
+            margin: '0 0 16px'
+          }}>
+            ¿Qué querés registrar?
+          </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {[
+              { value: TRANSACTION_TYPES.EXPENSE, label: 'Gasto' },
+              { value: TRANSACTION_TYPES.INCOME, label: 'Ingreso' },
+              { value: TRANSACTION_TYPES.TRANSFER, label: 'Transferencia' },
+              { value: TRANSACTION_TYPES.ADJUSTMENT, label: 'Ajuste' },
+            ].map((option) => (
+              <button
+                key={option.value}
+                onClick={() => {
+                  setFormData(f => ({ ...f, type: option.value as TransactionType }))
+                  setStep(1)
+                }}
+                className="modal-intent-btn"
+                style={{
+                  background: 'none',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: 2,
+                  padding: '14px 20px',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 14,
+                  color: 'var(--text-primary)',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  transition: 'border-color 150ms ease, background 150ms ease'
+                }}
+              >
+                <span style={{ color: 'var(--text-disabled)' }}>●</span>
+                {option.label}
+              </button>
+            ))}
+          </div>
         </div>
+
+        <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="c-btn-minimal"
+            style={{
+              flex: 1,
+              background: 'none',
+              border: 'none',
+              fontFamily: 'var(--font-mono)',
+              fontSize: 11,
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+              textAlign: 'center',
+              padding: '10px 0'
+            }}
+          >
+            Cancelar
+          </button>
+        </div>
+        <style>{`
+          .modal-intent-btn:hover {
+            border-color: var(--border-default) !important;
+            background: var(--bg-surface) !important;
+          }
+        `}</style>
+      </div>
+    )
+  }
+
+  // Paso 1: Formulario Correspondiente
+  return (
+    <form onSubmit={handleFormSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20, padding: '8px 4px' }}>
+      
+      {/* Intención actual con botón para volver atrás */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+        <span style={{
+          fontSize: 10,
+          fontFamily: 'var(--font-mono)',
+          color: 'var(--text-disabled)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.08em'
+        }}>
+          Tipo: <span style={{ color: 'var(--text-primary)' }}>{formData.type.toUpperCase()}</span>
+        </span>
+        {!initialData?.type && (
+          <button
+            type="button"
+            onClick={() => setStep(0)}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--text-muted)',
+              fontFamily: 'var(--font-mono)',
+              fontSize: 10,
+              cursor: 'pointer',
+              textDecoration: 'underline',
+              padding: 0
+            }}
+          >
+            cambiar
+          </button>
+        )}
       </div>
 
-      <Input
-        label={t('form.transaction.description')}
-        type="text"
-        value={formData.description}
-        onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
-        placeholder={t('form.transaction.description.placeholder')}
-      />
+      {/* Descripción */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <label style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--text-disabled)', textTransform: 'uppercase' }}>
+          Descripción
+        </label>
+        <input
+          type="text"
+          value={formData.description}
+          onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
+          placeholder="Escribí una descripción..."
+          style={{
+            background: 'none',
+            border: 'none',
+            borderBottom: '1px solid var(--border-subtle)',
+            fontFamily: 'var(--font-mono)',
+            fontSize: 14,
+            color: 'var(--text-primary)',
+            padding: '6px 0',
+            outline: 'none'
+          }}
+        />
+      </div>
 
-      <Input
-        label={t('form.transaction.date')}
-        type="date"
-        value={formData.date}
-        onChange={(e) => setFormData((prev) => ({ ...prev, date: e.target.value }))}
-        error={errors.date}
-        required
-      />
+      {/* Fecha */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <label style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--text-disabled)', textTransform: 'uppercase' }}>
+          Fecha
+        </label>
+        <input
+          type="date"
+          value={formData.date}
+          onChange={(e) => setFormData((prev) => ({ ...prev, date: e.target.value }))}
+          style={{
+            background: 'none',
+            border: 'none',
+            borderBottom: '1px solid var(--border-subtle)',
+            fontFamily: 'var(--font-mono)',
+            fontSize: 14,
+            color: 'var(--text-primary)',
+            padding: '6px 0',
+            outline: 'none'
+          }}
+        />
+        {errors.date && <p style={{ fontSize: 11, color: 'var(--red-alert)', margin: 0 }}>{errors.date}</p>}
+      </div>
 
-      {(formData.type === TRANSACTION_TYPES.INCOME ||
-        formData.type === TRANSACTION_TYPES.EXPENSE ||
+      {/* Inputs específicos para Gasto / Ingreso / Ajuste */}
+      {(formData.type === TRANSACTION_TYPES.EXPENSE ||
+        formData.type === TRANSACTION_TYPES.INCOME ||
         formData.type === TRANSACTION_TYPES.ADJUSTMENT) && (
         <>
-          <Select
-            label={t('form.transaction.currency')}
-            options={currencyOptions}
-            value={formData.currency}
-            onChange={(e) => setFormData((prev) => ({ ...prev, currency: e.target.value as CurrencyCode }))}
-          />
+          {/* Moneda */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <label style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--text-disabled)', textTransform: 'uppercase' }}>
+              Moneda
+            </label>
+            <div style={{ display: 'flex', gap: 12 }}>
+              {currencyOptions.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, currency: c as CurrencyCode }))}
+                  style={{
+                    background: formData.currency === c ? 'var(--bg-raised)' : 'none',
+                    border: '1px solid var(--border-subtle)',
+                    padding: '8px 16px',
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: 13,
+                    color: formData.currency === c ? 'var(--text-primary)' : 'var(--text-muted)',
+                    cursor: 'pointer',
+                    borderRadius: 2
+                  }}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+          </div>
 
+          {/* Tipo de Gasto (Fijo / Variable) */}
           {formData.type === TRANSACTION_TYPES.EXPENSE && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                {t('form.transaction.expenseKind')}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--text-disabled)', textTransform: 'uppercase' }}>
+                Tipo de Gasto
               </label>
-              <div className="flex space-x-4">
-                <label className="flex items-center text-gray-700">
-                  <input
-                    type="radio"
-                    name="expense_kind"
-                    value={EXPENSE_KINDS.FIXED}
-                    checked={formData.expense_kind === EXPENSE_KINDS.FIXED}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        expense_kind: e.target.value as 'fixed' | 'variable',
-                      }))
-                    }
-                    className="mr-2"
-                  />
-                  {t('form.transaction.expenseKind.fixed')}
-                </label>
-                <label className="flex items-center text-gray-700">
-                  <input
-                    type="radio"
-                    name="expense_kind"
-                    value={EXPENSE_KINDS.VARIABLE}
-                    checked={formData.expense_kind === EXPENSE_KINDS.VARIABLE}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        expense_kind: e.target.value as 'fixed' | 'variable',
-                      }))
-                    }
-                    className="mr-2"
-                  />
-                  {t('form.transaction.expenseKind.variable')}
-                </label>
+              <div style={{ display: 'flex', gap: 12 }}>
+                {[
+                  { value: EXPENSE_KINDS.FIXED, label: 'Fijo' },
+                  { value: EXPENSE_KINDS.VARIABLE, label: 'Variable' },
+                ].map((k) => (
+                  <button
+                    key={k.value}
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, expense_kind: k.value as 'fixed' | 'variable' }))}
+                    style={{
+                      background: formData.expense_kind === k.value ? 'var(--bg-raised)' : 'none',
+                      border: '1px solid var(--border-subtle)',
+                      padding: '8px 16px',
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: 13,
+                      color: formData.expense_kind === k.value ? 'var(--text-primary)' : 'var(--text-muted)',
+                      cursor: 'pointer',
+                      borderRadius: 2
+                    }}
+                  >
+                    {k.label}
+                  </button>
+                ))}
               </div>
-              {errors.expense_kind && (
-                <p className="mt-1 text-sm text-red-600">{errors.expense_kind}</p>
-              )}
+              {errors.expense_kind && <p style={{ fontSize: 11, color: 'var(--red-alert)', margin: 0 }}>{errors.expense_kind}</p>}
             </div>
           )}
 
+          {/* Categoría */}
           {(formData.type === TRANSACTION_TYPES.INCOME || formData.type === TRANSACTION_TYPES.EXPENSE) && (
-            <>
-              <Select
-                label={t('form.transaction.category')}
-                options={categoryOptions}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--text-disabled)', textTransform: 'uppercase' }}>
+                Categoría
+              </label>
+              <select
                 value={formData.category_id}
                 onChange={(e) => setFormData((prev) => ({ ...prev, category_id: e.target.value }))}
-                error={errors.category_id}
-                placeholder={t('form.transaction.category.placeholder')}
-                required
-              />
-
-              {formData.type === TRANSACTION_TYPES.EXPENSE && pendingInstallments.length > 0 && (
-                <div className="border p-3 rounded bg-gray-50 text-xs my-2 space-y-2">
-                  <label className="block font-semibold text-gray-700">
-                    Asociar a Cuotas Pendientes (opcional)
-                  </label>
-                  <div className="space-y-2 max-h-32 overflow-y-auto">
-                    {pendingInstallments.map((inst) => (
-                      <label key={inst.id} className="flex items-center gap-2 cursor-pointer hover:bg-gray-100 p-1 rounded">
-                        <input
-                          type="checkbox"
-                          checked={selectedInstallmentIds.includes(inst.id)}
-                          onChange={(e) => handleInstallmentToggle(inst.id, e.target.checked)}
-                          className="rounded text-blue-600 focus:ring-blue-500"
-                        />
-                        <span className="text-gray-700">
-                          <strong>{inst.commitments?.description}</strong> (Cuota {inst.installment_number}/{inst.total_installments}) —{' '}
-                          <span className="font-semibold text-amber-600">{inst.amount} {inst.commitments?.currency}</span>
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                  {selectedInstallmentIds.length > 0 && (
-                    <p className="text-[10px] text-blue-600 italic">
-                      Se auto-completará el monto total de las cuotas seleccionadas.
-                    </p>
-                  )}
-                </div>
-              )}
-
-              <Input
-                label={t('form.transaction.amount')}
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.amount || ''}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))
-                }
-                error={errors.amount}
-                required
-              />
-            </>
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  borderBottom: '1px solid var(--border-subtle)',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 14,
+                  color: 'var(--text-primary)',
+                  padding: '6px 0',
+                  outline: 'none',
+                  borderRadius: 0,
+                  WebkitAppearance: 'none'
+                }}
+              >
+                <option value="" disabled style={{ background: 'var(--bg-surface)' }}>Seleccionar categoría...</option>
+                {filteredCategories.map((c) => (
+                  <option key={c.id} value={c.id} style={{ background: 'var(--bg-surface)' }}>
+                    {translateCategoryName(c.name)}
+                  </option>
+                ))}
+              </select>
+              {errors.category_id && <p style={{ fontSize: 11, color: 'var(--red-alert)', margin: 0 }}>{errors.category_id}</p>}
+            </div>
           )}
 
-          {formData.type === TRANSACTION_TYPES.ADJUSTMENT && (
-            <Input
-              label={t('form.transaction.amount')}
+          {/* Cuotas Pendientes Asociables (Gasto únicamente) */}
+          {formData.type === TRANSACTION_TYPES.EXPENSE && pendingInstallments.length > 0 && (
+            <div style={{ border: '1px solid var(--border-subtle)', padding: 12, borderRadius: 2, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <label style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                Asociar a Cuotas Pendientes (opcional)
+              </label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 110, overflowY: 'auto' }}>
+                {pendingInstallments.map((inst) => (
+                  <label key={inst.id} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 12, color: 'var(--text-primary)' }}>
+                    <input
+                      type="checkbox"
+                      checked={selectedInstallmentIds.includes(inst.id)}
+                      onChange={(e) => handleInstallmentToggle(inst.id, e.target.checked)}
+                      style={{ accentColor: 'var(--casio-blue)' }}
+                    />
+                    <span>
+                      {inst.commitments?.description} ({inst.installment_number}/{inst.total_installments}) — {formatCurrency(inst.amount, inst.commitments?.currency as 'ARS' | 'USD')}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Monto */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <label style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--text-disabled)', textTransform: 'uppercase' }}>
+              Monto
+            </label>
+            <input
               type="number"
               step="0.01"
               value={formData.amount || ''}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))
-              }
-              error={errors.amount}
-              helperText={t('form.transaction.adjustment.helper')}
-              required
+              onChange={(e) => setFormData((prev) => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
+              placeholder="0.00"
+              style={{
+                background: 'none',
+                border: 'none',
+                borderBottom: '1px solid var(--border-subtle)',
+                fontFamily: 'var(--font-mono)',
+                fontSize: 16,
+                fontWeight: 700,
+                color: 'var(--text-primary)',
+                padding: '6px 0',
+                outline: 'none'
+              }}
             />
-          )}
+            {errors.amount && <p style={{ fontSize: 11, color: 'var(--red-alert)', margin: 0 }}>{errors.amount}</p>}
+          </div>
         </>
       )}
 
+      {/* Inputs específicos para Transferencia */}
       {formData.type === TRANSACTION_TYPES.TRANSFER && (
         <>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Select
-              label={t('form.transaction.transferFromCurrency')}
-              options={currencyOptions}
-              value={formData.from_currency}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, from_currency: e.target.value as CurrencyCode }))
-              }
-            />
-            <Input
-              label={t('form.transaction.transferFromAmount')}
-              type="number"
-              step="0.01"
-              min="0"
-              value={formData.from_amount || ''}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, from_amount: parseFloat(e.target.value) || 0 }))
-              }
-              error={errors.from_amount}
-              required
-            />
-          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* Origen */}
+            <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: 12, alignItems: 'end' }}>
+              <div>
+                <label style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--text-disabled)', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Desde</label>
+                <select
+                  value={formData.from_currency}
+                  onChange={(e) => setFormData(prev => ({ ...prev, from_currency: e.target.value as CurrencyCode }))}
+                  style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', fontSize: 12, padding: 6, width: '100%' }}
+                >
+                  {currencyOptions.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--text-disabled)', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Monto Origen</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={formData.from_amount || ''}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, from_amount: parseFloat(e.target.value) || 0 }))}
+                  placeholder="0.00"
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    borderBottom: '1px solid var(--border-subtle)',
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: 14,
+                    color: 'var(--text-primary)',
+                    padding: '6px 0',
+                    outline: 'none',
+                    width: '100%'
+                  }}
+                />
+              </div>
+            </div>
+            {errors.from_amount && <p style={{ fontSize: 11, color: 'var(--red-alert)', margin: 0 }}>{errors.from_amount}</p>}
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Select
-              label={t('form.transaction.transferToCurrency')}
-              options={currencyOptions}
-              value={formData.to_currency}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, to_currency: e.target.value as CurrencyCode }))
-              }
-              error={errors.to_currency}
-            />
-            <Input
-              label={t('form.transaction.transferToAmount')}
-              type="number"
-              step="0.01"
-              min="0"
-              value={formData.to_amount || ''}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, to_amount: parseFloat(e.target.value) || 0 }))
-              }
-              error={errors.to_amount}
-              required
-            />
-          </div>
+            {/* Destino */}
+            <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: 12, alignItems: 'end' }}>
+              <div>
+                <label style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--text-disabled)', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Hacia</label>
+                <select
+                  value={formData.to_currency}
+                  onChange={(e) => setFormData(prev => ({ ...prev, to_currency: e.target.value as CurrencyCode }))}
+                  style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', fontSize: 12, padding: 6, width: '100%' }}
+                >
+                  {currencyOptions.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--text-disabled)', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Monto Destino</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={formData.to_amount || ''}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, to_amount: parseFloat(e.target.value) || 0 }))}
+                  placeholder="0.00"
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    borderBottom: '1px solid var(--border-subtle)',
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: 14,
+                    color: 'var(--text-primary)',
+                    padding: '6px 0',
+                    outline: 'none',
+                    width: '100%'
+                  }}
+                />
+              </div>
+            </div>
+            {errors.to_amount && <p style={{ fontSize: 11, color: 'var(--red-alert)', margin: 0 }}>{errors.to_amount}</p>}
+            {errors.to_currency && <p style={{ fontSize: 11, color: 'var(--red-alert)', margin: 0 }}>{errors.to_currency}</p>}
 
-          <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2">
-            <p className="text-sm font-medium text-gray-700">
-              {t('form.transaction.effectiveExchangeRate')}
-            </p>
-            <p className="text-sm text-gray-600">
-              {effectiveExchangeRate
-                ? `${effectiveExchangeRate.toFixed(4)} ${formData.from_currency}/${formData.to_currency}`
-                : t('form.transaction.exchangeRate.placeholder')}
-            </p>
+            {/* Tipo de Cambio Implícito */}
+            {effectiveExchangeRate && (
+              <div style={{ padding: 10, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 2 }}>
+                <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--text-disabled)', textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>Tipo de cambio implícito</span>
+                <span style={{ fontSize: 12, fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>
+                  1 USD = {effectiveExchangeRate.toFixed(2)} ARS
+                </span>
+              </div>
+            )}
           </div>
         </>
       )}
 
-      <div className="flex space-x-3 pt-4">
-        <Button
+      {/* Botones de acción */}
+      <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
+        <button
           type="button"
-          variant="secondary"
           onClick={onCancel}
-          className="flex-1"
+          style={{
+            flex: 1,
+            background: 'none',
+            border: '1px solid var(--border-subtle)',
+            borderRadius: 2,
+            fontFamily: 'var(--font-mono)',
+            fontSize: 11,
+            color: 'var(--text-muted)',
+            cursor: 'pointer',
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+            padding: '12px 0',
+            textAlign: 'center'
+          }}
         >
-          {t('cancel')}
-        </Button>
-        <Button
+          Cancelar
+        </button>
+        <button
           type="submit"
-          loading={loading}
-          className="flex-1"
+          disabled={loading}
+          style={{
+            flex: 1,
+            background: 'var(--bg-raised)',
+            border: '1px solid var(--border-default)',
+            borderRadius: 2,
+            fontFamily: 'var(--font-mono)',
+            fontSize: 11,
+            color: 'var(--text-primary)',
+            cursor: 'pointer',
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+            padding: '12px 0',
+            textAlign: 'center',
+            fontWeight: 600
+          }}
         >
-          {loading ? (loadingLabel ?? t('form.transaction.adding')) : (submitLabel ?? t('add'))}
-        </Button>
+          {loading ? 'Guardando...' : 'Confirmar'}
+        </button>
       </div>
     </form>
   )

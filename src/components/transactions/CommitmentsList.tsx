@@ -119,7 +119,7 @@ export default function CommitmentsList({ refreshTrigger, onRefresh }: Commitmen
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha Compra</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descripción</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Monto</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vencimiento</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Primer Vencimiento</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Medio</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
@@ -151,15 +151,13 @@ export default function CommitmentsList({ refreshTrigger, onRefresh }: Commitmen
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  {commitment.status === 'pending' && (
-                    <Button
-                      variant="danger"
-                      size="sm"
-                      onClick={() => handleDelete(commitment.id)}
-                    >
-                      Eliminar
-                    </Button>
-                  )}
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    onClick={() => handleDelete(commitment.id)}
+                  >
+                    Eliminar
+                  </Button>
                 </td>
               </tr>
             ))}
@@ -175,6 +173,7 @@ export default function CommitmentsList({ refreshTrigger, onRefresh }: Commitmen
             totalItems={total}
             pageSize={pageSize}
             onPageChange={setPage}
+            itemLabel="commitments"
           />
         </div>
       )}

@@ -230,6 +230,10 @@
     "access.denied.title": "Acceso Denegado",
     "access.denied.message": "Debes iniciar sesión para ver el panel.",
     "recent.transactions": "Transacciones Recientes",
+    "sections": {
+      "monthly_flow": "Flujo Mensual / Operativo",
+      "capital_position": "Patrimonio y Capital"
+    },
     "opening.balance": "Saldo Inicial",
     "total.income": "Ingresos Totales",
     "total.expenses": "Gastos Totales",

@@ -65,40 +65,35 @@ const Modal = ({
   }
 
   return createPortal (
-    <div className="fixed inset-0 flex items-center justify-center z-50">
-      {/* Backdrop */}
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" />
-      
-      {/* Modal */}
+    <div className="c-modal-overlay">
       <div
         ref={modalRef}
         className={cn(
-          'relative bg-white rounded-lg shadow-xl w-full mx-4',
+          'c-modal relative mx-4',
           sizes[size]
         )}
       >
         {/* Header */}
         {(title || showCloseButton) && (
-          <div className="flex justify-between items-center p-6 border-b border-gray-200">
+          <div className="flex justify-between items-center p-6 border-b border-[var(--border-subtle)]">
             {title && (
-              <h2 className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">{title}</h2>
+              <h2 className="text-[11px] font-mono font-semibold text-[var(--text-secondary)] uppercase tracking-wider">{title}</h2>
             )}
             {showCloseButton && (
               <button
                 onClick={onClose}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors text-xl font-mono"
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
                 aria-label="Close modal"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                ×
               </button>
             )}
           </div>
         )}
         
         {/* Content */}
-        <div className="p-6">
+        <div className="p-6 text-[var(--text-primary)]">
           {children}
         </div>
       </div>
@@ -107,4 +102,5 @@ const Modal = ({
   )
 }
 
-export { Modal } 
+export { Modal }
+ 

@@ -11,12 +11,14 @@ interface AddTransactionModalProps {
   isOpen: boolean
   onClose: () => void
   onTransactionAdded: () => void
+  initialType?: 'expense' | 'income' | 'transfer'
 }
 
 export default function AddTransactionModal({ 
   isOpen, 
   onClose, 
- onTransactionAdded 
+  onTransactionAdded,
+  initialType,
 }: AddTransactionModalProps) {
   const { user } = useAuth()
   const [loading, setLoading] = useState(false)
@@ -64,6 +66,7 @@ export default function AddTransactionModal({
         onSubmit={handleSubmit}
         onCancel={handleCancel}
         loading={loading}
+        initialData={initialType ? { type: initialType } : undefined}
       />
     </Modal>
   )

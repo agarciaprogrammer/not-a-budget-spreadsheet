@@ -5,7 +5,6 @@ import { useAuth } from '@/components/providers/AuthProvider'
 import { commitmentService, type InstallmentWithCommitment } from '@/lib/services/commitment.service'
 import { LoadingState } from '@/components/ui/LoadingState'
 import { formatCurrency } from '@/lib/utils/formatters'
-import PayInstallmentModal from '@/components/transactions/PayInstallmentModal'
 
 interface InstallmentsCalendarProps {
   refreshTrigger: number
@@ -22,15 +21,11 @@ interface GroupedInstallments {
   }
 }
 
-export default function InstallmentsCalendar({ refreshTrigger, onRefresh }: InstallmentsCalendarProps) {
+export default function InstallmentsCalendar({ refreshTrigger }: InstallmentsCalendarProps) {
   const { user } = useAuth()
   const [installments, setInstallments] = useState<InstallmentWithCommitment[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  
-  // Estados para modal de pago
-  const [selectedInstallment, setSelectedInstallment] = useState<InstallmentWithCommitment | null>(null)
-  const [isPayModalOpen, setIsPayModalOpen] = useState(false)
 
   const loadInstallments = useCallback(async () => {
     if (!user) return
@@ -54,11 +49,6 @@ export default function InstallmentsCalendar({ refreshTrigger, onRefresh }: Inst
       loadInstallments()
     }
   }, [user, refreshTrigger, loadInstallments])
-
-  const handlePaymentRegistered = () => {
-    loadInstallments()
-    if (onRefresh) onRefresh()
-  }
 
   // Agrupar cuotas por mes y año de vencimiento
   const getGroupedData = (): GroupedInstallments[] => {
@@ -173,17 +163,6 @@ export default function InstallmentsCalendar({ refreshTrigger, onRefresh }: Inst
                       }`}>
                         {inst.status === 'completed' ? 'Pagada' : 'Pendiente'}
                       </span>
-                      {inst.status === 'pending' && (
-                        <button
-                          onClick={() => {
-                            setSelectedInstallment(inst)
-                            setIsPayModalOpen(true)
-                          }}
-                          className="text-[10px] text-blue-600 hover:text-blue-800 font-medium hover:underline block"
-                        >
-                          Saldar cuota
-                        </button>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -192,16 +171,6 @@ export default function InstallmentsCalendar({ refreshTrigger, onRefresh }: Inst
           </div>
         ))}
       </div>
-
-      <PayInstallmentModal
-        isOpen={isPayModalOpen}
-        onClose={() => {
-          setIsPayModalOpen(false)
-          setSelectedInstallment(null)
-        }}
-        installment={selectedInstallment}
-        onPaymentRegistered={handlePaymentRegistered}
-      />
     </div>
   )
 }

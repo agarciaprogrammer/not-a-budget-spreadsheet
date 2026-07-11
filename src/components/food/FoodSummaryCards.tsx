@@ -14,6 +14,7 @@ export default function FoodSummaryCards({ refreshTrigger }: FoodSummaryCardsPro
 
   const summary = useMemo(() => {
     // TODO: Replace placeholder summary with data from food services.
+    if (refreshTrigger) { /* no-op */ }
     return {
       dailyCalories: 1850,
       weeklyAverageCalories: 1720,

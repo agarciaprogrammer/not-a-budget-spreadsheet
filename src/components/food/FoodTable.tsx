@@ -71,7 +71,10 @@ interface FoodTableProps {
 export default function FoodTable({ refreshTrigger }: FoodTableProps) {
   const { t } = useTranslation()
 
-  const ingredients = useMemo(() => mockIngredients, [refreshTrigger])
+  const ingredients = useMemo(() => {
+    if (refreshTrigger) { /* no-op */ }
+    return mockIngredients
+  }, [refreshTrigger])
 
   const statusStyles: Record<IngredientStatus, string> = {
     ok: 'bg-emerald-100 text-emerald-800',

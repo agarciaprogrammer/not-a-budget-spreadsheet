@@ -23,7 +23,7 @@ export default function CommitmentForm({
   const [description, setDescription] = useState('')
   const [amount, setAmount] = useState('')
   const [currency, setCurrency] = useState<'ARS' | 'USD'>(CURRENCIES.ARS)
-  const [date, setDate] = useState(formatDateToYYYYMMDD(new Date()))
+  const [date] = useState(formatDateToYYYYMMDD(new Date()))
   const [dueDate, setDueDate] = useState(formatDateToYYYYMMDD(new Date()))
   const [installmentsCount, setInstallmentsCount] = useState('1')
   const [customInstallments, setCustomInstallments] = useState(false)

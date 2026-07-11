@@ -22,6 +22,7 @@ export default function DailyMealsList({ refreshTrigger }: DailyMealsListProps) 
 
   const meals = useMemo<MealItem[]>(() => {
     // TODO: Replace placeholder meals with data from food services.
+    if (refreshTrigger) { /* no-op */ }
     return [
       { id: 'meal-1', time: '08:10', name: 'Oatmeal + berries', calories: 350, protein: 12 },
       { id: 'meal-2', time: '12:45', name: 'Chicken salad bowl', calories: 520, protein: 38 },

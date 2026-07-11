@@ -1,6 +1,5 @@
 'use client'
 
-import { useAuth } from '@/components/providers/AuthProvider'
 import { useMonthlyLimit } from '@/hooks/useMonthlyLimit'
 import { useSummaryData } from '@/hooks/useSummaryData'
 

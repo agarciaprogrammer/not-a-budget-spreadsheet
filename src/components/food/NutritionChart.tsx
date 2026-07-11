@@ -13,6 +13,7 @@ export default function NutritionChart({ refreshTrigger }: NutritionChartProps) 
 
   const chartData = useMemo(() => {
     // TODO: Replace placeholder chart data with data from food services.
+    if (refreshTrigger) { /* no-op */ }
     return {
       calories: [420, 560, 380, 610, 520],
       labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']

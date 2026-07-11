@@ -9,7 +9,6 @@ interface SnapshotRowProps {
   refreshTrigger: number
   onOpenNetWorth: () => void
   onOpenCommitments: () => void
-  onOpenSpending: () => void
   onOpenLimit: () => void
 }
 
@@ -86,7 +85,6 @@ export default function SnapshotRow({
   refreshTrigger,
   onOpenNetWorth,
   onOpenCommitments,
-  onOpenSpending,
   onOpenLimit,
 }: SnapshotRowProps) {
   const { summaryData, loading } = useSummaryData(refreshTrigger)

@@ -54,7 +54,7 @@ export function TransactionForm({
   const [selectedInstallmentIds, setSelectedInstallmentIds] = useState<string[]>([])
 
   const [formData, setFormData] = useState<TransactionFormState>(() => {
-    const init = (initialData ?? {}) as any
+    const init = (initialData ?? {}) as Partial<TransactionFormState>
     const base = {
       type: (init.type ?? '') as TransactionType | '',
       date: init.date ?? formatDateToYYYYMMDD(new Date()),
@@ -698,7 +698,7 @@ export function TransactionForm({
             fontWeight: 600
           }}
         >
-          {loading ? 'Guardando...' : 'Confirmar'}
+          {loading ? (loadingLabel ?? 'Guardando...') : (submitLabel ?? 'Confirmar')}
         </button>
       </div>
     </form>

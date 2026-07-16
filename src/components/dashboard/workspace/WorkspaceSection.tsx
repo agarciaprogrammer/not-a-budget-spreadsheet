@@ -6,8 +6,10 @@ import InsightsSection from '@/components/dashboard/home/InsightsSection'
 import { useDashboardDate } from '@/components/providers/DashboardDateProvider'
 import { useSummaryData } from '@/hooks/useSummaryData'
 import { useAuth } from '@/components/providers/AuthProvider'
-import { formatCurrency } from '@/lib/utils/formatters'
+import { formatCurrency, formatDate } from '@/lib/utils/formatters'
 import { budgetService } from '@/lib/services/budget.service'
+import { commitmentService } from '@/lib/services/commitment.service'
+import { transactionService } from '@/lib/services/transaction.service'
 
 interface WorkspaceSectionProps {
   refreshTrigger: number
@@ -38,6 +40,17 @@ export default function WorkspaceSection({
   const [limit, setLimit] = useState<number | null>(null)
   const [lLoading, setLLoading] = useState(true)
 
+  // Local state for commitments details
+  const [commitmentsCount, setCommitmentsCount] = useState<number>(0)
+  const [nextCommitmentDate, setNextCommitmentDate] = useState<string | null>(null)
+  const [activeARS, setActiveARS] = useState<number>(0)
+  const [activeUSD, setActiveUSD] = useState<number>(0)
+  const [cLoading, setCLoading] = useState(false)
+
+  // Local state for previous month balance (to calculate variation)
+  const [prevNetBalance, setPrevNetBalance] = useState<{ ARS: number; USD: number } | null>(null)
+  const [vLoading, setVLoading] = useState(false)
+
   const isCurrentMonth =
     selectedMonth.getMonth() === new Date().getMonth() &&
     selectedMonth.getFullYear() === new Date().getFullYear()
@@ -63,6 +76,98 @@ export default function WorkspaceSection({
     loadLimit()
   }, [user, selectedMonth, refreshTrigger])
 
+  // Load commitments data
+  useEffect(() => {
+    async function loadCommitments() {
+      if (!user) return
+      setCLoading(true)
+      try {
+        const { data } = await commitmentService.getUserCommitments(user.id, { page: 1, pageSize: 100 })
+        const active = data.filter(c => c.status === 'pending' || c.status === 'partial')
+        
+        const selYear = selectedMonth.getFullYear()
+        const selMonthNum = selectedMonth.getMonth() + 1
+        
+        // Filter commitments belonging to currently selected month
+        const inPeriod = active.filter(c => {
+          if (!c.due_date) return false
+          const [y, m] = c.due_date.split('-').map(Number)
+          return y === selYear && m === selMonthNum
+        })
+        
+        setCommitmentsCount(inPeriod.length)
+        
+        let sumARS = 0
+        let sumUSD = 0
+        inPeriod.forEach(c => {
+          if (c.currency === 'ARS') {
+            sumARS += c.amount
+          } else if (c.currency === 'USD') {
+            sumUSD += c.amount
+          }
+        })
+        setActiveARS(sumARS)
+        setActiveUSD(sumUSD)
+
+        if (inPeriod.length > 0) {
+          const sorted = [...inPeriod].sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())
+          setNextCommitmentDate(sorted[0].due_date)
+        } else {
+          // Find next future commitment
+          const selectedMonthEnd = new Date(selYear, selMonthNum, 0)
+          const future = active.filter(c => {
+            if (!c.due_date) return false
+            const [y, m, d] = c.due_date.split('-').map(Number)
+            const dueDateObj = new Date(y, m - 1, d)
+            return dueDateObj > selectedMonthEnd
+          })
+          if (future.length > 0) {
+            const sortedFuture = [...future].sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())
+            setNextCommitmentDate(sortedFuture[0].due_date)
+          } else {
+            setNextCommitmentDate(null)
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching commitments for widget:', err)
+      } finally {
+        setCLoading(false)
+      }
+    }
+    loadCommitments()
+  }, [user, selectedMonth, refreshTrigger])
+
+  // Load previous month Net Balance
+  useEffect(() => {
+    async function loadPreviousMonthData() {
+      if (!user) return
+      setVLoading(true)
+      try {
+        const prevMonthDate = new Date(selectedMonth)
+        prevMonthDate.setMonth(prevMonthDate.getMonth() - 1)
+        const prevYear = prevMonthDate.getFullYear()
+        const prevMonthNum = prevMonthDate.getMonth() + 1
+        
+        const prevStartDate = `${prevYear}-${String(prevMonthNum).padStart(2, '0')}-01`
+        const prevLastDay = new Date(prevYear, prevMonthNum, 0).getDate()
+        const prevEndDate = `${prevYear}-${String(prevMonthNum).padStart(2, '0')}-${String(prevLastDay).padStart(2, '0')}`
+
+        const summary = await transactionService.getTransactionSummary(user.id, {
+          dateRange: {
+            startDate: prevStartDate,
+            endDate: prevEndDate
+          }
+        })
+        setPrevNetBalance(summary.netBalance)
+      } catch (err) {
+        console.error('Error fetching previous month balance:', err)
+      } finally {
+        setVLoading(false)
+      }
+    }
+    loadPreviousMonthData()
+  }, [user, selectedMonth, refreshTrigger])
+
   const netARS = summaryData.netBalance.ARS
   const netUSD = summaryData.netBalance.USD
   const availableARS = summaryData.availableCapital.ARS
@@ -75,6 +180,31 @@ export default function WorkspaceSection({
   const limitHint = limit ? `${percentUsed.toFixed(0)}% of limit` : 'no limit'
 
   const loading = sLoading || lLoading
+
+  // Calculate liquidity/available percentage
+  const netARSVal = Math.max(netARS, 0)
+  let availablePercent = 100
+  if (netARSVal > 0) {
+    availablePercent = Math.max(0, Math.min(100, (availableARS / netARSVal) * 100))
+  } else if (availableARS <= 0) {
+    availablePercent = 0
+  }
+
+  let availabilityStatus = 'OPTIMAL'
+  let availabilityDot = 'green'
+  if (availablePercent < 40) {
+    availabilityStatus = 'CRITICAL'
+    availabilityDot = 'red'
+  } else if (availablePercent < 80) {
+    availabilityStatus = 'RESTRICTED'
+    availabilityDot = 'yellow'
+  }
+
+  // Calculate Net Worth percentage change vs previous month
+  let variationPercentARS: number | null = null
+  if (prevNetBalance && prevNetBalance.ARS !== 0) {
+    variationPercentARS = ((netARS - prevNetBalance.ARS) / Math.abs(prevNetBalance.ARS)) * 100
+  }
 
   return (
     <div
@@ -167,7 +297,7 @@ export default function WorkspaceSection({
         <div style={{ height: 1, background: 'var(--border-subtle)', marginTop: 16 }} />
       </div>
 
-      {/* ── Compact Summary Cards (Rediseño minimalista de display plano) ──── */}
+      {/* ── Compact Summary Widgets (Rediseño de display plano LCD) ──── */}
       <div
         style={{
           padding: '0 36px',
@@ -175,57 +305,122 @@ export default function WorkspaceSection({
           margin: '0 auto 36px',
         }}
       >
-        <div className="compact-cards-grid">
-          {/* Card 1: Net Balance */}
-          <button onClick={onOpenNetWorth} className="compact-card">
-            <div className="compact-card-label">Net Balance</div>
-            <div className="compact-card-value">
+        <div className="widget-grid">
+          {/* Widget 1: Patrimonio */}
+          <button onClick={onOpenNetWorth} className="workspace-widget">
+            <div className="widget-question">¿Cuál es mi patrimonio actual?</div>
+            <div className="widget-header-row">
+              <span className="widget-label">Patrimonio</span>
+            </div>
+            
+            <div className="widget-main-value">
               {loading ? '...' : formatCurrency(netARS, 'ARS')}
             </div>
-            {!loading && netUSD !== 0 && (
-              <div className="compact-card-value-sub">
-                {formatCurrency(netUSD, 'USD')}
+            
+            <div className="widget-footer-row">
+              <div className="widget-sub-value">
+                {loading ? '...' : formatCurrency(netUSD, 'USD')}
               </div>
-            )}
+              
+              {!loading && !vLoading && variationPercentARS !== null ? (
+                <div className={`widget-badge ${variationPercentARS >= 0 ? 'badge-positive' : 'badge-negative'}`}>
+                  {variationPercentARS >= 0 ? '▲' : '▼'} {Math.abs(variationPercentARS).toFixed(1)}% vs. mes ant.
+                </div>
+              ) : (
+                <div className="widget-badge badge-neutral">—</div>
+              )}
+            </div>
           </button>
 
-          {/* Card 2: Available Capital */}
-          <button onClick={onOpenNetWorth} className="compact-card">
-            <div className="compact-card-label">Available Capital</div>
-            <div className="compact-card-value">
+          {/* Widget 2: Capital Disponible */}
+          <button onClick={onOpenNetWorth} className="workspace-widget">
+            <div className="widget-question">¿Cuánto dinero puedo utilizar?</div>
+            <div className="widget-header-row">
+              <span className="widget-label">Capital Disponible</span>
+            </div>
+            
+            <div className="widget-main-value">
               {loading ? '...' : formatCurrency(availableARS, 'ARS')}
             </div>
-            {!loading && availableUSD !== 0 && (
-              <div className="compact-card-value-sub">
-                {formatCurrency(availableUSD, 'USD')}
+            
+            <div className="widget-footer-row">
+              <div className="widget-sub-value">
+                {loading ? '...' : availableUSD !== 0 ? formatCurrency(availableUSD, 'USD') : `${availablePercent.toFixed(0)}% disponible`}
               </div>
-            )}
-          </button>
-
-          {/* Card 3: Committed Capital */}
-          <button onClick={onOpenCommitments} className="compact-card">
-            <div className="compact-card-label">Committed Capital</div>
-            <div className="compact-card-value">
-              {loading ? '...' : formatCurrency(committedARS, 'ARS')}
+              
+              <div className="widget-status-indicator">
+                <span className={`c-dot c-dot--${availabilityDot}`} />
+                <span className={`status-text-${availabilityDot}`}>
+                  {availableUSD !== 0 ? `${availablePercent.toFixed(0)}% libre` : availabilityStatus}
+                </span>
+              </div>
             </div>
-            {!loading && committedUSD !== 0 && (
-              <div className="compact-card-value-sub">
-                {formatCurrency(committedUSD, 'USD')}
-              </div>
-            )}
           </button>
 
-          {/* Card 4: Monthly Spending */}
-          <button onClick={onOpenLimit} className="compact-card">
-            <div className="compact-card-label">Monthly Spending</div>
-            <div className="compact-card-value">
+          {/* Widget 3: Compromisos */}
+          <button onClick={onOpenCommitments} className="workspace-widget">
+            <div className="widget-question">¿Tengo algo pendiente?</div>
+            <div className="widget-header-row">
+              <span className="widget-label">Compromisos</span>
+            </div>
+            
+            <div className="widget-main-value">
+              {loading || cLoading ? '...' : 
+               commitmentsCount === 0 ? formatCurrency(0, 'ARS') :
+               activeARS > 0 ? formatCurrency(activeARS, 'ARS') : 
+               formatCurrency(activeUSD, 'USD')}
+            </div>
+            
+            <div className="widget-footer-row">
+              <div className="widget-sub-value">
+                {cLoading ? '...' : 
+                 commitmentsCount === 0 ? 'Sin compromisos' : 
+                 `${commitmentsCount} pendiente${commitmentsCount === 1 ? '' : 's'}${activeARS > 0 && activeUSD > 0 ? ` (+ ${formatCurrency(activeUSD, 'USD')})` : ''}`}
+              </div>
+              
+              {!cLoading && nextCommitmentDate ? (
+                <div className={`widget-badge ${commitmentsCount > 0 ? 'badge-warn' : 'badge-neutral'}`}>
+                  Próximo: {formatDate(nextCommitmentDate, { month: 'short', day: 'numeric' })}
+                </div>
+              ) : (
+                <div className="widget-badge badge-ok">
+                  ✔ Al día
+                </div>
+              )}
+            </div>
+          </button>
+
+          {/* Widget 4: Gasto Mensual */}
+          <button onClick={onOpenLimit} className="workspace-widget">
+            <div className="widget-question">¿Cómo viene mi presupuesto?</div>
+            <div className="widget-header-row">
+              <span className="widget-label">Gasto Mensual</span>
+            </div>
+            
+            <div className="widget-main-value">
               {loading ? '...' : formatCurrency(spendingARS, 'ARS')}
             </div>
-            {!loading && (
-              <div className="compact-card-value-sub">
-                {limitHint}
+            
+            <div className="widget-footer-row">
+              <div className="widget-progress-container">
+                <div className="lcd-progress-bar">
+                  {[...Array(10)].map((_, i) => {
+                    const blockPercent = (i + 1) * 10
+                    const isActive = percentUsed >= blockPercent
+                    const isLimitExceeded = percentUsed >= 90
+                    return (
+                      <div
+                        key={i}
+                        className={`lcd-progress-block ${isActive ? (isLimitExceeded ? 'block-exceeded' : 'block-active') : 'block-inactive'}`}
+                      />
+                    )
+                  })}
+                </div>
+                <span className="progress-hint-text">
+                  {limit ? `${percentUsed.toFixed(0)}% del límite` : 'Sin límite'}
+                </span>
               </div>
-            )}
+            </div>
           </button>
         </div>
       </div>
@@ -256,56 +451,202 @@ export default function WorkspaceSection({
       </div>
 
       <style>{`
-        .compact-cards-grid {
+        .widget-grid {
           display: grid;
           grid-template-columns: repeat(4, 1fr);
-          gap: 20px;
+          border-top: 1px solid var(--border-subtle);
+          border-bottom: 1px solid var(--border-subtle);
+          background: transparent;
           margin-bottom: 24px;
         }
-        .compact-card {
-          background: none;
+        .workspace-widget {
+          background: transparent;
           border: none;
-          border-left: 2px solid var(--border-subtle);
-          padding: 8px 16px;
+          border-right: 1px solid var(--border-subtle);
+          padding: 18px 20px;
           text-align: left;
           cursor: pointer;
-          transition: border-color 200ms ease, background 200ms ease;
-          display: block;
+          transition: background 180ms ease, border-color 180ms ease;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          min-height: 145px;
+          position: relative;
           width: 100%;
         }
-        .compact-card:hover {
-          border-left-color: var(--casio-blue);
+        .workspace-widget:last-child {
+          border-right: none;
+        }
+        .workspace-widget::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 2px;
+          background: transparent;
+          transition: background 180ms ease;
+        }
+        .workspace-widget:hover::before {
+          background: var(--casio-blue);
+        }
+        .workspace-widget:hover {
           background: var(--bg-surface);
         }
-        .compact-card-label {
+        .widget-question {
           font-size: 9px;
+          font-weight: 500;
           font-family: var(--font-mono);
-          color: var(--text-disabled);
+          color: var(--text-muted);
           text-transform: uppercase;
           letter-spacing: 0.08em;
-          margin-bottom: 4px;
+          margin-bottom: 6px;
         }
-        .compact-card-value {
-          font-size: 15px;
+        .widget-header-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 8px;
+        }
+        .widget-label {
+          font-size: 11px;
           font-weight: 700;
           font-family: var(--font-mono);
           color: var(--text-primary);
-          line-height: 1.2;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
         }
-        .compact-card-value-sub {
+        .widget-main-value {
+          font-size: 20px;
+          font-weight: 700;
+          font-family: var(--font-mono);
+          color: var(--text-primary);
+          line-height: 1;
+          margin-bottom: 12px;
+          letter-spacing: -0.01em;
+        }
+        .widget-footer-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-top: auto;
+          gap: 8px;
+          width: 100%;
+        }
+        .widget-sub-value {
           font-size: 11px;
           font-family: var(--font-mono);
+          color: var(--text-secondary);
+        }
+        .widget-badge {
+          font-size: 9px;
+          font-family: var(--font-mono);
+          padding: 2px 6px;
+          border-radius: 3px;
+          text-transform: uppercase;
+          font-weight: 600;
+          letter-spacing: 0.02em;
+        }
+        .badge-positive {
+          background: var(--green-lcd-dim);
+          color: var(--green-lcd);
+          border: 1px solid rgba(0, 230, 118, 0.2);
+        }
+        .badge-negative {
+          background: var(--red-alert-dim);
+          color: var(--red-alert);
+          border: 1px solid rgba(255, 61, 61, 0.2);
+        }
+        .badge-neutral {
+          background: var(--bg-base);
           color: var(--text-muted);
-          margin-top: 2px;
+          border: 1px solid var(--border-subtle);
+        }
+        .badge-warn {
+          background: var(--yellow-warn-dim);
+          color: var(--yellow-warn);
+          border: 1px solid rgba(255, 202, 40, 0.2);
+        }
+        .badge-ok {
+          background: var(--green-lcd-dim);
+          color: var(--green-lcd);
+          border: 1px solid rgba(0, 230, 118, 0.2);
+        }
+        .widget-status-indicator {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 9px;
+          font-family: var(--font-mono);
+          font-weight: 700;
+          letter-spacing: 0.05em;
+        }
+        .status-text-green { color: var(--green-lcd); }
+        .status-text-yellow { color: var(--yellow-warn); }
+        .status-text-red { color: var(--red-alert); }
+        .widget-progress-container {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          width: 100%;
+        }
+        .lcd-progress-bar {
+          display: flex;
+          gap: 3px;
+          width: 100%;
+        }
+        .lcd-progress-block {
+          flex: 1;
+          height: 6px;
+          border-radius: 1px;
+          transition: background-color 200ms ease;
+        }
+        .block-active {
+          background: var(--casio-blue);
+          box-shadow: 0 0 3px var(--casio-blue);
+        }
+        .block-exceeded {
+          background: var(--red-alert);
+          box-shadow: 0 0 3px var(--red-alert);
+        }
+        .block-inactive {
+          background: var(--bg-base);
+          border: 1px solid var(--border-subtle);
+        }
+        .progress-hint-text {
+          font-size: 9px;
+          font-family: var(--font-mono);
+          color: var(--text-muted);
+          text-align: right;
+          width: 100%;
+          display: block;
         }
         @media (max-width: 900px) {
           .workspace-grid { grid-template-columns: 1fr !important; }
         }
-        @media (max-width: 780px) {
-          .compact-cards-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 16px !important; }
+        @media (max-width: 1024px) {
+          .widget-grid {
+            grid-template-columns: repeat(2, 1fr);
+            border-bottom: none;
+          }
+          .workspace-widget {
+            border-bottom: 1px solid var(--border-subtle);
+          }
+          .workspace-widget:nth-child(2) {
+            border-right: none;
+          }
+          .workspace-widget:nth-child(4) {
+            border-right: none;
+          }
         }
-        @media (max-width: 480px) {
-          .compact-cards-grid { grid-template-columns: 1fr !important; }
+        @media (max-width: 600px) {
+          .widget-grid {
+            grid-template-columns: 1fr;
+          }
+          .workspace-widget {
+            border-right: none;
+            border-bottom: 1px solid var(--border-subtle);
+          }
         }
       `}</style>
     </div>

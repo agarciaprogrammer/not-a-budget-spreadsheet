@@ -43,7 +43,7 @@ function typeDot(type: Transaction['type']): string {
 
 export default function ActivityFeed({ refreshTrigger, onAddTransaction, onRefresh }: ActivityFeedProps) {
   const { user } = useAuth()
-  const { monthRange } = useDashboardDate()
+  const { monthRange, selectedMonth } = useDashboardDate()
   const { translateCategoryName } = useCategoryTranslation()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [total, setTotal] = useState(0)
@@ -84,24 +84,40 @@ export default function ActivityFeed({ refreshTrigger, onAddTransaction, onRefre
     }
   }
 
+  const getSmartDate = (dateStr: string) => {
+    if (!dateStr) return '—'
+    try {
+      const [y, m, d] = dateStr.split('-').map(Number)
+      const selYear = selectedMonth.getFullYear()
+      const selMonthNum = selectedMonth.getMonth() + 1
+      
+      if (y === selYear && m === selMonthNum) {
+        return String(d).padStart(2, '0')
+      }
+      return formatDate(dateStr)
+    } catch {
+      return formatDate(dateStr)
+    }
+  }
+
   const totalPages = Math.ceil(total / pageSize)
 
   return (
     <div className="c-card" style={{ padding: '20px 24px' }}>
       {/* Section header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <div>
-          <div className="c-label" style={{ marginBottom: 2 }}>Recent Activity</div>
+          <div className="c-label" style={{ marginBottom: 2, fontSize: 11, letterSpacing: '0.05em' }}>Recent Activity</div>
           {!loading && (
             <span style={{ fontSize: 10, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-              {total} transaction{total !== 1 ? 's' : ''} this month
+              {total} transaction{total !== 1 ? 's' : ''} this period
             </span>
           )}
         </div>
         <button
           id="activity-add-transaction"
           className="c-action-btn"
-          style={{ fontSize: 10, padding: '6px 10px' }}
+          style={{ fontSize: 9, padding: '5px 9px', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.04em' }}
           onClick={onAddTransaction}
         >
           + Transaction
@@ -112,7 +128,7 @@ export default function ActivityFeed({ refreshTrigger, onAddTransaction, onRefre
       {loading ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {[...Array(5)].map((_, i) => (
-            <div key={i} style={{ height: 36, background: 'var(--border-subtle)', borderRadius: 4, opacity: 0.6 - i * 0.1 }} />
+            <div key={i} style={{ height: 42, background: 'var(--border-subtle)', borderRadius: 4, opacity: 0.6 - i * 0.1 }} />
           ))}
         </div>
       ) : transactions.length === 0 ? (
@@ -133,60 +149,76 @@ export default function ActivityFeed({ refreshTrigger, onAddTransaction, onRefre
           {/* Column headers */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: '95px 1fr 90px 100px 72px',
-            gap: 8,
-            paddingBottom: 6,
+            gridTemplateColumns: '50px 1fr 130px',
+            gap: 12,
+            paddingBottom: 8,
             borderBottom: '1px solid var(--border-subtle)',
             marginBottom: 4,
           }}>
-            {['DATE', 'DESCRIPTION', 'CATEGORY', 'AMOUNT', ''].map((h, i) => (
-              <div key={i} className="c-label" style={{ textAlign: i >= 3 ? 'right' : 'left' }}>{h}</div>
-            ))}
+            <div className="c-label" style={{ fontSize: 9, letterSpacing: '0.06em' }}>DATE</div>
+            <div className="c-label" style={{ fontSize: 9, letterSpacing: '0.06em' }}>LEDGER DETAIL</div>
+            <div className="c-label" style={{ fontSize: 9, letterSpacing: '0.06em', textAlign: 'right' }}>AMOUNT</div>
           </div>
 
           {/* Rows */}
-          {transactions.map(tx => {
+          {transactions.map((tx, idx) => {
             const category = tx.categories?.name ? translateCategoryName(tx.categories.name) : '—'
             const amountColor = typeColor(tx.type)
             const sign = typeSign(tx.type)
-            const dot = typeDot(tx.type)
             const isTransfer = tx.type === 'transfer'
 
             return (
               <div
                 key={tx.id}
                 className="c-activity-row"
-                style={{ display: 'grid', gridTemplateColumns: '95px 1fr 90px 100px 72px', gap: 8, cursor: 'pointer' }}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '50px 1fr 130px',
+                  gap: 12,
+                  cursor: 'pointer',
+                  padding: '12px 0',
+                  borderBottom: idx === transactions.length - 1 ? 'none' : '1px solid var(--border-subtle)'
+                }}
                 onClick={() => { setSelected(tx); setIsEditOpen(true) }}
               >
-                <div style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <span className={`c-dot ${dot}`} style={{ flexShrink: 0 }} />
-                  {formatDate(tx.date)}
+                {/* Column 1: Smart Date */}
+                <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', display: 'flex', alignItems: 'center' }}>
+                  {getSmartDate(tx.date)}
                 </div>
 
-                <div style={{ fontSize: 12, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center' }}>
-                  {tx.description || '—'}
+                {/* Column 2: Description & Category */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2, justifyContent: 'center' }}>
+                  <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {tx.description || '—'}
+                  </div>
+                  <div style={{ fontSize: 10, color: 'var(--text-disabled)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+                    {category}
+                  </div>
                 </div>
 
-                <div style={{ fontSize: 10, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {category}
-                </div>
-
-                <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+                {/* Column 3: Amount & Action */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', gap: 2 }}>
                   {isTransfer ? (
-                    <span className="c-value" style={{ fontSize: 11, color: 'var(--casio-blue)' }}>
+                    <span style={{ fontSize: 12, fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--casio-blue)' }}>
                       {formatCurrency(tx.from_amount ?? 0, tx.from_currency ?? 'ARS')}
                     </span>
                   ) : (
-                    <span className="c-value" style={{ fontSize: 12, fontWeight: 600, color: amountColor }}>
+                    <span style={{ fontSize: 12, fontFamily: 'var(--font-mono)', fontWeight: 600, color: amountColor }}>
                       {sign}{formatCurrency(tx.amount ?? 0, tx.currency ?? 'ARS')}
                     </span>
                   )}
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
                   <button
-                    style={{ fontSize: 9, color: 'var(--text-disabled)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-mono)', letterSpacing: '0.05em', padding: '2px 4px' }}
+                    style={{
+                      fontSize: 8,
+                      color: 'var(--text-disabled)',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontFamily: 'var(--font-mono)',
+                      letterSpacing: '0.05em',
+                      padding: '2px 4px',
+                      marginTop: 2
+                    }}
                     onClick={(e) => { e.stopPropagation(); handleDelete(tx.id) }}
                     title="Delete"
                   >
@@ -199,25 +231,25 @@ export default function ActivityFeed({ refreshTrigger, onAddTransaction, onRefre
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 16, borderTop: '1px solid var(--border-subtle)', marginTop: 8 }}>
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 16, paddingTop: 16, borderTop: '1px solid var(--border-subtle)', marginTop: 8 }}>
               <button
-                className="c-btn c-btn--ghost"
-                style={{ fontSize: 11, padding: '5px 12px' }}
+                className="c-month-btn"
+                style={{ fontSize: 14, padding: '2px 8px' }}
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page <= 1}
               >
-                ← Prev
+                ‹
               </button>
-              <span style={{ fontSize: 10, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+              <span style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', letterSpacing: '0.05em' }}>
                 {page} / {totalPages}
               </span>
               <button
-                className="c-btn c-btn--ghost"
-                style={{ fontSize: 11, padding: '5px 12px' }}
+                className="c-month-btn"
+                style={{ fontSize: 14, padding: '2px 8px' }}
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 disabled={page >= totalPages}
               >
-                Next →
+                ›
               </button>
             </div>
           )}

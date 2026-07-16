@@ -9,12 +9,6 @@ interface InsightsSectionProps {
   refreshTrigger: number
 }
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="c-label" style={{ marginBottom: 10 }}>{children}</div>
-  )
-}
-
 export default function InsightsSection({ refreshTrigger }: InsightsSectionProps) {
   const { summaryData, loading: summaryLoading } = useSummaryData(refreshTrigger)
   const { breakdownData, loading: breakdownLoading } = useCategoryBreakdown(refreshTrigger)
@@ -79,12 +73,12 @@ export default function InsightsSection({ refreshTrigger }: InsightsSectionProps
       </div>
 
       {/* ── Category breakdown ── */}
-      <div className="c-card" style={{ padding: '18px 20px' }}>
-        <SectionLabel>Category Distribution</SectionLabel>
+      <div className="c-card" style={{ padding: '20px 24px' }}>
+        <div className="c-label" style={{ marginBottom: 20, fontSize: 11, letterSpacing: '0.05em' }}>Top Spending</div>
         {breakdownLoading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {[...Array(4)].map((_, i) => (
-              <div key={i} style={{ height: 28, background: 'var(--border-subtle)', borderRadius: 3, opacity: 0.5 - i * 0.1 }} />
+              <div key={i} style={{ height: 32, background: 'var(--border-subtle)', borderRadius: 3, opacity: 0.5 - i * 0.1 }} />
             ))}
           </div>
         ) : breakdownData.categories.length === 0 ? (
@@ -92,57 +86,56 @@ export default function InsightsSection({ refreshTrigger }: InsightsSectionProps
             NO DATA
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {breakdownData.categories.slice(0, 6).map((cat, i) => (
-              <CategoryBar
-                key={i}
-                name={translateCategoryName(cat.name)}
-                amount={cat.value}
-                percentage={cat.percentage}
-                color={cat.color}
-              />
-            ))}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {breakdownData.categories
+              .slice()
+              .sort((a, b) => b.value - a.value)
+              .slice(0, 6)
+              .map((cat, idx) => {
+                const name = translateCategoryName(cat.name)
+                const percentage = cat.percentage
+                const amount = cat.value
+                const color = cat.color
+
+                return (
+                  <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {/* Line 1: Name & Metric Details */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                      <span style={{ fontSize: 11, color: 'var(--text-primary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, flexShrink: 0 }} />
+                        {name}
+                      </span>
+                      <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>
+                        {formatCurrency(amount, 'ARS')}
+                        <span style={{ color: 'var(--text-disabled)', margin: '0 6px' }}>·</span>
+                        <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{percentage.toFixed(1)}%</span>
+                      </span>
+                    </div>
+
+                    {/* Line 2: Full-width LCD Progress Bar */}
+                    <div style={{
+                      height: 8,
+                      background: 'rgba(255, 255, 255, 0.04)',
+                      borderRadius: 1,
+                      overflow: 'hidden',
+                      position: 'relative'
+                    }}>
+                      <div
+                        style={{
+                          height: '100%',
+                          width: `${Math.min(percentage, 100)}%`,
+                          background: `repeating-linear-gradient(90deg, ${color}, ${color} 6px, transparent 6px, transparent 8px)`,
+                          transition: 'width 250ms cubic-bezier(0.4, 0, 0.2, 1)',
+                        }}
+                      />
+                    </div>
+                  </div>
+                )
+              })}
           </div>
         )}
       </div>
 
-    </div>
-  )
-}
-
-function CategoryBar({
-  name,
-  amount,
-  percentage,
-  color,
-}: {
-  name: string
-  amount: number
-  percentage: number
-  color: string
-}) {
-  return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-        <span style={{ fontSize: 11, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, flexShrink: 0, display: 'inline-block' }} />
-          {name}
-        </span>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <span style={{ fontSize: 9, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-            {percentage.toFixed(1)}%
-          </span>
-          <span className="c-value" style={{ fontSize: 11, color: 'var(--text-primary)' }}>
-            {formatCurrency(amount, 'ARS')}
-          </span>
-        </div>
-      </div>
-      <div className="c-progress-track">
-        <div
-          className="c-progress-fill"
-          style={{ width: `${Math.min(percentage, 100)}%`, background: color, opacity: 0.8 }}
-        />
-      </div>
     </div>
   )
 }

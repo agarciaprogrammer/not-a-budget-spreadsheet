@@ -1,3 +1,4 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { createAdminSupabaseClient } from '@/lib/supabase/admin'
 import { createBrowserSupabaseClient } from '@/lib/supabase/client'
@@ -31,7 +32,7 @@ export class AccountService {
     }
   }
 
-  private async getBudgetId(supabase: any, userId: string): Promise<string | null> {
+  private async getBudgetId(supabase: SupabaseClient, userId: string): Promise<string | null> {
     const { data, error } = await supabase
       .from('budget_users')
       .select('budget_id')

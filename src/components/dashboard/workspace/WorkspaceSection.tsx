@@ -172,12 +172,9 @@ export default function WorkspaceSection({
   const netUSD = summaryData.netBalance.USD
   const availableARS = summaryData.availableCapital.ARS
   const availableUSD = summaryData.availableCapital.USD
-  const committedARS = summaryData.committedCapital.ARS
-  const committedUSD = summaryData.committedCapital.USD
   const spendingARS = summaryData.totalVariableExpenses
 
   const percentUsed = limit ? Math.min((spendingARS / limit) * 100, 100) : 0
-  const limitHint = limit ? `${percentUsed.toFixed(0)}% of limit` : 'no limit'
 
   const loading = sLoading || lLoading
 

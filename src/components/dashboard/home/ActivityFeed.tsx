@@ -32,14 +32,6 @@ function typeSign(type: Transaction['type']): string {
   }
 }
 
-function typeDot(type: Transaction['type']): string {
-  switch (type) {
-    case 'income':   return 'c-dot--green'
-    case 'expense':  return 'c-dot--red'
-    case 'transfer': return 'c-dot--blue'
-    default:         return ''
-  }
-}
 
 export default function ActivityFeed({ refreshTrigger, onAddTransaction, onRefresh }: ActivityFeedProps) {
   const { user } = useAuth()

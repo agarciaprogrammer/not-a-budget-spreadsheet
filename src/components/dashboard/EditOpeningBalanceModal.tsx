@@ -12,14 +12,14 @@ import { useAuth } from '@/components/providers/AuthProvider'
 interface Props {
   isOpen: boolean
   onClose: () => void
-  year: number
-  month: number
+  year?: number
+  month?: number
   initialARS: number
   initialUSD: number
   onSaved: () => void
 }
 
-export default function EditOpeningBalanceModal({ isOpen, onClose, year, month, initialARS, initialUSD, onSaved }: Props) {
+export default function EditOpeningBalanceModal({ isOpen, onClose, initialARS, initialUSD, onSaved }: Props) {
   const [realARS, setRealARS] = useState(String(initialARS ?? 0))
   const [realUSD, setRealUSD] = useState(String(initialUSD ?? 0))
   const [step, setStep] = useState<'input' | 'preview'>('input')

@@ -1,11 +1,19 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import CasioModal from './CasioModal'
 import { useSummaryData } from '@/hooks/useSummaryData'
 import { useDashboardDate } from '@/components/providers/DashboardDateProvider'
 import { formatCurrency } from '@/lib/utils/formatters'
 import EditOpeningBalanceModal from '@/components/dashboard/EditOpeningBalanceModal'
+
+interface AccountBalance {
+  id: string
+  name: string
+  bank: string
+  currency: 'ARS' | 'USD'
+  current_balance: number
+}
 
 interface NetWorthModalProps {
   isOpen: boolean
@@ -20,12 +28,12 @@ function Row({ label, arsValue, usdValue, highlight }: { label: string; arsValue
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
-      padding: '10px 0',
+      padding: '8px 0',
       borderBottom: '1px solid var(--border-subtle)',
     }}>
       <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{label}</span>
       <div style={{ textAlign: 'right' }}>
-        <div className="c-value" style={{ fontSize: 14, fontWeight: 600, color: highlight ?? 'var(--text-primary)' }}>
+        <div className="c-value" style={{ fontSize: 13, fontWeight: 600, color: highlight ?? 'var(--text-primary)' }}>
           {formatCurrency(arsValue, 'ARS')}
         </div>
         {usdValue !== undefined && usdValue !== 0 && (
@@ -42,6 +50,28 @@ export default function NetWorthModal({ isOpen, onClose, refreshTrigger, onSaved
   const { summaryData, loading } = useSummaryData(refreshTrigger)
   const { selectedMonth } = useDashboardDate()
   const [editOpen, setEditOpen] = useState(false)
+  const [accounts, setAccounts] = useState<AccountBalance[]>([])
+  const [loadingAccounts, setLoadingAccounts] = useState(false)
+
+  useEffect(() => {
+    if (isOpen) {
+      setLoadingAccounts(true)
+      fetch('/api/accounts')
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) setAccounts(data)
+        })
+        .catch(err => console.error('Failed to load accounts', err))
+        .finally(() => setLoadingAccounts(false))
+    }
+  }, [isOpen, refreshTrigger])
+
+  // Group accounts by Bank
+  const accountsByBank: Record<string, AccountBalance[]> = {}
+  accounts.forEach(acc => {
+    if (!accountsByBank[acc.bank]) accountsByBank[acc.bank] = []
+    accountsByBank[acc.bank].push(acc)
+  })
 
   return (
     <>
@@ -77,13 +107,42 @@ export default function NetWorthModal({ isOpen, onClose, refreshTrigger, onSaved
               />
             </div>
 
-            <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border-subtle)' }}>
+            {/* Distribution by Accounts Section */}
+            <div style={{ marginTop: 20, paddingTop: 14, borderTop: '2px dashed var(--border-default)' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: 10 }}>
+                Distribución por Cuentas
+              </div>
+
+              {loadingAccounts ? (
+                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Cargando saldos por cuenta...</div>
+              ) : Object.keys(accountsByBank).length === 0 ? (
+                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Sin cuentas activas.</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {Object.entries(accountsByBank).map(([bank, bankAccounts]) => (
+                    <div key={bank} style={{ background: 'var(--bg-secondary)', padding: '8px 12px', borderRadius: 4, border: '1px solid var(--border-subtle)' }}>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>{bank}</div>
+                      {bankAccounts.map(acc => (
+                        <div key={acc.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-secondary)', padding: '2px 0' }}>
+                          <span>{acc.name}</span>
+                          <span style={{ fontFamily: 'monospace', fontWeight: 600, color: 'var(--text-primary)' }}>
+                            {formatCurrency(acc.current_balance, acc.currency)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'flex-end' }}>
               <button
                 className="c-btn c-btn--ghost"
                 style={{ fontSize: 11 }}
                 onClick={() => setEditOpen(true)}
               >
-                Edit Opening Balance
+                Sincronizar Saldo
               </button>
             </div>
           </>
@@ -95,8 +154,8 @@ export default function NetWorthModal({ isOpen, onClose, refreshTrigger, onSaved
         onClose={() => setEditOpen(false)}
         year={selectedMonth.getFullYear()}
         month={selectedMonth.getMonth() + 1}
-        initialARS={summaryData.openingBalance.ARS}
-        initialUSD={summaryData.openingBalance.USD}
+        initialARS={summaryData.netBalance.ARS}
+        initialUSD={summaryData.netBalance.USD}
         onSaved={() => { onSaved(); setEditOpen(false) }}
       />
     </>

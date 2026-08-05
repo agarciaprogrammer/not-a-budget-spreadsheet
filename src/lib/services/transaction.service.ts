@@ -566,73 +566,104 @@ export class TransactionService {
       }
     })
 
-    // Determine openingBalance and netBalance behavior depending on override presence
+    // Determine openingBalance and netBalance behavior depending on Ledger Genesis / Snapshot presence
     try {
-      // Parse selected month/year
-      const [selectedYear, selectedMonth] = startDate.split('-').map(Number)
-
-      // Find the most recent override on or before the selected month with a single query
-      let anchor: { year: number; month: number; row: OpeningBalanceOverride } | null = null
-
-      const { data: anchorRows, error: anchorError } = await supabase
-        .from('opening_balance_overrides')
-        .select('*')
+      // 1. Prioritize Ledger Genesis (ledger_snapshots) on or before startDate
+      const { data: snapshotRows, error: snapError } = await supabase
+        .from('ledger_snapshots')
+        .select('*, ledger_snapshot_accounts(*, accounts(*))')
         .eq('budget_id', budgetId)
-        .or(`year.lt.${selectedYear},and(year.eq.${selectedYear},month.lte.${selectedMonth})`)
-        .order('year', { ascending: false })
-        .order('month', { ascending: false })
+        .lte('effective_date', startDate)
+        .order('effective_date', { ascending: false })
+        .order('version', { ascending: false })
         .limit(1)
 
-      if (anchorError) throw anchorError
+      const genesisSnapshot = !snapError && snapshotRows && snapshotRows.length > 0 ? snapshotRows[0] : null
 
-      const firstAnchor = (anchorRows as OpeningBalanceOverride[] | null) && (anchorRows as OpeningBalanceOverride[])[0]
-      if (firstAnchor) {
-        anchor = { year: firstAnchor.year, month: firstAnchor.month, row: firstAnchor }
-      }
+      if (genesisSnapshot) {
+        // Initialize openingBalance and netBalance from Genesis snapshot accounts
+        genesisSnapshot.ledger_snapshot_accounts?.forEach((item: { opening_balance: number; accounts?: { currency: string } }) => {
+          const curr = item.accounts?.currency || 'ARS'
+          if (curr === 'ARS' || curr === 'USD') {
+            openingBalance[curr] += Number(item.opening_balance) ?? 0
+          }
+        })
 
-  if (anchor) {
-        // Anchor found. Build anchor start date (YYYY-MM-01)
-        const anchorStartDate = `${anchor.year}-${String(anchor.month).padStart(2, '0')}-01`
+        const effectiveDate = genesisSnapshot.effective_date
 
-        // opening starts at the anchor's override amounts
-        openingBalance.ARS = Number(anchor.row.ars_amount) ?? 0
-        openingBalance.USD = Number(anchor.row.usd_amount) ?? 0
-
-        // Propagate transactions from anchorStartDate up to selected month start (exclusive) into opening
+        // Propagate transactions from effectiveDate up to startDate (exclusive) into openingBalance
         transactions.forEach((transaction) => {
-          if (transaction.date >= anchorStartDate && transaction.date < startDate) {
+          if (transaction.date >= effectiveDate && transaction.date < startDate) {
             applyTransactionToBalance(openingBalance, transaction)
           }
         })
 
-        // Net starts from the opening (which already includes anchor + rolled-forward months)
+        // Net starts from openingBalance
         netBalance.ARS = openingBalance.ARS
         netBalance.USD = openingBalance.USD
 
-        // Then apply only selected-month transactions to net
+        // Apply transactions in current period (startDate to endDate) to netBalance
         transactions.forEach((transaction) => {
           if (transaction.date >= startDate && transaction.date <= endDate) {
             applyTransactionToBalance(netBalance, transaction)
           }
         })
       } else {
-        // No anchor found: previous behavior
-        // opening = sum(transactions with date < startDate)
-        transactions.forEach((transaction) => {
-          if (transaction.date < startDate) {
-            applyTransactionToBalance(openingBalance, transaction)
-          }
-        })
+        // Fallback: Check legacy opening_balance_overrides
+        const [selectedYear, selectedMonth] = startDate.split('-').map(Number)
+        let anchor: { year: number; month: number; row: OpeningBalanceOverride } | null = null
 
-        // net = apply all transactions up to endDate
-        transactions.forEach((transaction) => {
-          if (transaction.date <= endDate) {
-            applyTransactionToBalance(netBalance, transaction)
-          }
-        })
+        const { data: anchorRows, error: anchorError } = await supabase
+          .from('opening_balance_overrides')
+          .select('*')
+          .eq('budget_id', budgetId)
+          .or(`year.lt.${selectedYear},and(year.eq.${selectedYear},month.lte.${selectedMonth})`)
+          .order('year', { ascending: false })
+          .order('month', { ascending: false })
+          .limit(1)
+
+        if (anchorError) throw anchorError
+
+        const firstAnchor = (anchorRows as OpeningBalanceOverride[] | null) && (anchorRows as OpeningBalanceOverride[])[0]
+        if (firstAnchor) {
+          anchor = { year: firstAnchor.year, month: firstAnchor.month, row: firstAnchor }
+        }
+
+        if (anchor) {
+          const anchorStartDate = `${anchor.year}-${String(anchor.month).padStart(2, '0')}-01`
+          openingBalance.ARS = Number(anchor.row.ars_amount) ?? 0
+          openingBalance.USD = Number(anchor.row.usd_amount) ?? 0
+
+          transactions.forEach((transaction) => {
+            if (transaction.date >= anchorStartDate && transaction.date < startDate) {
+              applyTransactionToBalance(openingBalance, transaction)
+            }
+          })
+
+          netBalance.ARS = openingBalance.ARS
+          netBalance.USD = openingBalance.USD
+
+          transactions.forEach((transaction) => {
+            if (transaction.date >= startDate && transaction.date <= endDate) {
+              applyTransactionToBalance(netBalance, transaction)
+            }
+          })
+        } else {
+          // No anchor or snapshot found: pure ledger from day 0
+          transactions.forEach((transaction) => {
+            if (transaction.date < startDate) {
+              applyTransactionToBalance(openingBalance, transaction)
+            }
+          })
+          transactions.forEach((transaction) => {
+            if (transaction.date <= endDate) {
+              applyTransactionToBalance(netBalance, transaction)
+            }
+          })
+        }
       }
     } catch {
-      // On error retrieving override, fallback to previous behavior
+      // On error retrieving snapshot/override, fallback to pure ledger from day 0
       transactions.forEach((transaction) => {
         if (transaction.date < startDate) {
           applyTransactionToBalance(openingBalance, transaction)

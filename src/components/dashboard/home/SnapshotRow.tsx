@@ -117,7 +117,7 @@ export default function SnapshotRow({
         label="Net Balance"
         onClick={onOpenNetWorth}
         status={netWorthStatus}
-        hint="click to edit opening balance"
+        hint="click para sincronizar saldo"
       >
         <CurrencyLine amount={netARS} currency="ARS" color={netARS >= 0 ? 'var(--green-lcd)' : 'var(--red-alert)'} />
         {summaryData.netBalance.USD !== 0 && (

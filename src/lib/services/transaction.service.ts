@@ -81,6 +81,8 @@ export interface TransactionSummary {
   totalFixedExpenses: number
   totalVariableExpenses: number
   totalExpenses: number
+  debitExpenses?: number
+  creditExpenses?: number
   netBalance: BalanceByCurrency
   committedCapital: BalanceByCurrency
   availableCapital: BalanceByCurrency
@@ -545,6 +547,8 @@ export class TransactionService {
     const openingBalance = cloneBalance(EMPTY_BALANCE)
     const netBalance = cloneBalance(EMPTY_BALANCE)
     let totalIncome = 0
+    let debitExpenses = 0
+    let creditExpenses = 0
     let totalFixedExpenses = 0
     let totalVariableExpenses = 0
 
@@ -557,14 +561,43 @@ export class TransactionService {
         }
 
         if (transaction.type === TRANSACTION_TYPES.EXPENSE && normalizeCurrency(transaction.currency) === CURRENCIES.ARS) {
-          if (isFixedExpense(transaction.date, transaction.expense_kind)) {
-            totalFixedExpenses += transaction.amount ?? 0
-          } else if (isVariableExpense(transaction.date, transaction.expense_kind)) {
-            totalVariableExpenses += transaction.amount ?? 0
+          // EXCLUDE transactions that have a payment_id (card settlement payments)
+          // to prevent double-counting when paying card bills
+          if (!transaction.payment_id) {
+            debitExpenses += transaction.amount ?? 0
+            if (isFixedExpense(transaction.date, transaction.expense_kind)) {
+              totalFixedExpenses += transaction.amount ?? 0
+            } else if (isVariableExpense(transaction.date, transaction.expense_kind)) {
+              totalVariableExpenses += transaction.amount ?? 0
+            }
           }
         }
       }
     })
+
+    // Add monthly installments due in the period (credit purchases / commitments cuotas)
+    try {
+      const periodInstallments = await commitmentService.getUserInstallments(userId, {
+        startDate,
+        endDate
+      })
+
+      for (const inst of periodInstallments) {
+        const curr = inst.commitments?.currency
+        if (curr === 'ARS' || !curr) {
+          creditExpenses += inst.amount
+          const kind = inst.commitments?.expense_kind
+          if (kind === 'fixed') {
+            totalFixedExpenses += inst.amount
+          } else {
+            // Default to variable expense for commitments / cuotas
+            totalVariableExpenses += inst.amount
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching period installments for summary:', err)
+    }
 
     // Determine openingBalance and netBalance behavior depending on Ledger Genesis / Snapshot presence
     try {
@@ -690,6 +723,8 @@ export class TransactionService {
       totalFixedExpenses,
       totalVariableExpenses,
       totalExpenses: totalFixedExpenses + totalVariableExpenses,
+      debitExpenses,
+      creditExpenses,
       netBalance,
       committedCapital,
       availableCapital,

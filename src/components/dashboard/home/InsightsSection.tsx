@@ -14,6 +14,8 @@ export default function InsightsSection({ refreshTrigger }: InsightsSectionProps
   const { breakdownData, loading: breakdownLoading } = useCategoryBreakdown(refreshTrigger)
   const { translateCategoryName } = useCategoryTranslation()
 
+  const netCashMovement = summaryData.totalIncome - (summaryData.debitExpenses ?? 0)
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
@@ -28,46 +30,86 @@ export default function InsightsSection({ refreshTrigger }: InsightsSectionProps
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {/* Top row: Income and Total Expenses side-by-side */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-              <div>
-                <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>INCOME</div>
-                <div style={{ fontSize: 16, fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--green-lcd)', marginTop: 4 }}>
-                  {formatCurrency(summaryData.totalIncome, 'ARS')}
+            {/* SECTION 1: CASH FLOW (Movimiento Real de Caja) */}
+            <div>
+              <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', marginBottom: 10, color: 'var(--text-disabled)', textTransform: 'uppercase' }}>
+                💰 CASH FLOW (SALIDA REAL DE CAJA)
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', textTransform: 'uppercase' }}>INGRESOS</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--green-lcd)', marginTop: 2 }}>
+                    +{formatCurrency(summaryData.totalIncome, 'ARS')}
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', textTransform: 'uppercase' }}>EFECTIVO / DÉBITO</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--red-alert)', marginTop: 2 }}>
+                    −{formatCurrency(summaryData.debitExpenses ?? 0, 'ARS')}
+                  </div>
                 </div>
               </div>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>TOTAL EXPENSES</div>
-                <div style={{ fontSize: 16, fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--red-alert)', marginTop: 4 }}>
-                  {formatCurrency(summaryData.totalFixedExpenses + summaryData.totalVariableExpenses, 'ARS')}
-                </div>
-              </div>
-            </div>
 
-            {/* Small breakdown detail with no lines */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', letterSpacing: '0.02em', padding: '0 2px' }}>
-              <span>Fixed: {formatCurrency(summaryData.totalFixedExpenses, 'ARS')}</span>
-              <span>Variable: {formatCurrency(summaryData.totalVariableExpenses, 'ARS')}</span>
-            </div>
-
-            {/* Simple Divider */}
-            <div style={{ height: 1, background: 'var(--border-subtle)', margin: '4px 0' }} />
-
-            {/* Key takeaway: Net Balance */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: 10, fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>NET BALANCE</span>
-                <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: 2 }}>RESULT OF PERIOD</span>
-              </div>
-              <span style={{
-                fontSize: 18,
-                fontWeight: 700,
-                fontFamily: 'var(--font-mono)',
-                color: summaryData.netBalance.ARS >= 0 ? 'var(--casio-blue)' : 'var(--red-alert)'
+              {/* Movimiento Neto de Caja */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginTop: 10,
+                paddingTop: 8,
+                borderTop: '1px solid var(--border-subtle)'
               }}>
-                {formatCurrency(summaryData.netBalance.ARS, 'ARS')}
-              </span>
+                <span style={{ fontSize: 10, fontWeight: 600, fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                  MOVIMIENTO NETO CAJA
+                </span>
+                <span style={{
+                  fontSize: 15,
+                  fontWeight: 700,
+                  fontFamily: 'var(--font-mono)',
+                  color: netCashMovement >= 0 ? 'var(--casio-blue)' : 'var(--red-alert)'
+                }}>
+                  {netCashMovement >= 0 ? '+' : ''}
+                  {formatCurrency(netCashMovement, 'ARS')}
+                </span>
+              </div>
             </div>
+
+            <div style={{ height: 1, background: 'var(--border-subtle)', margin: '2px 0' }} />
+
+            {/* SECTION 2: CONSUMPTION & CREDIT (Consumo del Período) */}
+            <div>
+              <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', marginBottom: 10, color: 'var(--text-disabled)', textTransform: 'uppercase' }}>
+                🛒 CONSUMPTION THIS MONTH
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, fontFamily: 'var(--font-mono)' }}>
+                  <span style={{ color: 'var(--text-muted)' }}>· Efectivo / Débito</span>
+                  <span style={{ color: 'var(--text-primary)' }}>{formatCurrency(summaryData.debitExpenses ?? 0, 'ARS')}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, fontFamily: 'var(--font-mono)' }}>
+                  <span style={{ color: 'var(--text-muted)' }}>· Crédito (Pendiente)</span>
+                  <span style={{ color: '#d8b4fe' }}>{formatCurrency(summaryData.creditExpenses ?? 0, 'ARS')}</span>
+                </div>
+
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginTop: 4,
+                  paddingTop: 6,
+                  borderTop: '1px solid var(--border-subtle)'
+                }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--text-primary)', textTransform: 'uppercase' }}>
+                    CONSUMO TOTAL MES
+                  </span>
+                  <span style={{ fontSize: 15, fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--text-primary)' }}>
+                    {formatCurrency(summaryData.totalExpenses, 'ARS')}
+                  </span>
+                </div>
+              </div>
+            </div>
+
           </div>
         )}
       </div>

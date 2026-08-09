@@ -1,9 +1,12 @@
 'use client'
 
-import { useState } from 'react'
-import { CURRENCIES } from '@/lib/constants'
+import { useState, useEffect, useMemo } from 'react'
+import { CURRENCIES, EXPENSE_KINDS } from '@/lib/constants'
 import { formatDateToYYYYMMDD } from '@/lib/utils/date-utils'
 import { formatCurrency } from '@/lib/utils/formatters'
+import { transactionService, type Category } from '@/lib/services/transaction.service'
+import { useCategoryTranslation } from '@/hooks/useCategoryTranslation'
+import { useAuth } from '@/components/providers/AuthProvider'
 import type { CommitmentFormData } from '@/validations/commitment'
 
 interface CommitmentFormProps {
@@ -17,23 +20,47 @@ export default function CommitmentForm({
   onCancel,
   loading = false,
 }: CommitmentFormProps) {
-  // Pasos: 0 (Qué compraste), 1 (Cuánto salió), 2 (Cuántas cuotas), 3 (Vencimiento), 4 (Resumen & Confirmar)
+  const { user } = useAuth()
+  const { translateCategoryName } = useCategoryTranslation()
+  const [categories, setCategories] = useState<Category[]>([])
+
+  // Pasos: 0 (Detalles de compra), 1 (Monto y Moneda), 2 (Cuotas), 3 (Vencimiento), 4 (Resumen & Confirmar)
   const [step, setStep] = useState(0)
 
   const [description, setDescription] = useState('')
+  const [categoryId, setCategoryId] = useState('')
+  const [expenseKind, setExpenseKind] = useState<'variable' | 'fixed'>('variable')
+  const [cardLabel, setCardLabel] = useState('Santander Crédito')
   const [amount, setAmount] = useState('')
   const [currency, setCurrency] = useState<'ARS' | 'USD'>(CURRENCIES.ARS)
-  const [date] = useState(formatDateToYYYYMMDD(new Date()))
+  const [date, setDate] = useState(formatDateToYYYYMMDD(new Date()))
   const [dueDate, setDueDate] = useState(formatDateToYYYYMMDD(new Date()))
   const [installmentsCount, setInstallmentsCount] = useState('1')
   const [customInstallments, setCustomInstallments] = useState(false)
   const [validationError, setValidationError] = useState<string | null>(null)
 
+  useEffect(() => {
+    async function loadCats() {
+      if (!user) return
+      try {
+        const userCategories = await transactionService.getUserCategories(user.id)
+        setCategories(userCategories.filter(c => !!c.expense_kind))
+      } catch (err) {
+        console.error('Error loading categories:', err)
+      }
+    }
+    loadCats()
+  }, [user])
+
+  const filteredCategories = useMemo(() => {
+    return categories.filter(c => !expenseKind || c.expense_kind === expenseKind)
+  }, [categories, expenseKind])
+
   const handleNext = () => {
     setValidationError(null)
     if (step === 0) {
       if (!description.trim()) {
-        setValidationError('Por favor ingresá qué compraste.')
+        setValidationError('Por favor ingresá la descripción de la compra.')
         return
       }
       setStep(1)
@@ -99,17 +126,22 @@ export default function CommitmentForm({
         payment_method: 'credit',
         status: 'pending',
         installments_count: parsedInstallments,
+        category_id: categoryId || undefined,
+        expense_kind: expenseKind,
+        card_label: cardLabel || 'Santander Crédito'
       }
       await onSubmit(data)
     } catch (error) {
       console.error('Submit error:', error)
-      setValidationError('Ocurrió un error al guardar el compromiso.')
+      setValidationError('Ocurrió un error al guardar la compra a crédito.')
     }
   }
 
+  const selectedCategoryObj = categories.find(c => c.id === categoryId)
+
   return (
     <div style={{ padding: '8px 4px', display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {/* Indicador de pasos arriba */}
+      {/* Indicador de pasos */}
       <div style={{ display: 'flex', gap: 6 }}>
         {[0, 1, 2, 3, 4].map((i) => (
           <div
@@ -131,31 +163,146 @@ export default function CommitmentForm({
         </p>
       )}
 
-      {/* PASO 0: ¿Qué compraste? */}
+      {/* PASO 0: Detalle de la compra a crédito */}
       {step === 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <h3 style={{ fontSize: 13, fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', textTransform: 'uppercase', margin: 0 }}>
-            Paso 1: ¿Qué compraste?
+            Paso 1: Detalle de la Compra a Crédito
           </h3>
-          <input
-            type="text"
-            autoFocus
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Ej: Compra de notebook, Suscripción anual..."
-            style={{
-              background: 'none',
-              border: 'none',
-              borderBottom: '1px solid var(--border-subtle)',
-              fontFamily: 'var(--font-mono)',
-              fontSize: 16,
-              color: 'var(--text-primary)',
-              padding: '8px 0',
-              outline: 'none',
-              width: '100%'
-            }}
-            onKeyDown={(e) => { if (e.key === 'Enter') handleNext() }}
-          />
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <label style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--text-disabled)', textTransform: 'uppercase' }}>
+              Descripción
+            </label>
+            <input
+              type="text"
+              autoFocus
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Ej: Supermercado, Compra Notebook..."
+              style={{
+                background: 'none',
+                border: 'none',
+                borderBottom: '1px solid var(--border-subtle)',
+                fontFamily: 'var(--font-mono)',
+                fontSize: 15,
+                color: 'var(--text-primary)',
+                padding: '6px 0',
+                outline: 'none',
+                width: '100%'
+              }}
+            />
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            {/* Tipo de Gasto */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--text-disabled)', textTransform: 'uppercase' }}>
+                Tipo de Gasto
+              </label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {[
+                  { value: EXPENSE_KINDS.VARIABLE, label: 'Variable' },
+                  { value: EXPENSE_KINDS.FIXED, label: 'Fijo' },
+                ].map((k) => (
+                  <button
+                    key={k.value}
+                    type="button"
+                    onClick={() => setExpenseKind(k.value as 'variable' | 'fixed')}
+                    style={{
+                      flex: 1,
+                      background: expenseKind === k.value ? 'var(--bg-raised)' : 'none',
+                      border: '1px solid var(--border-subtle)',
+                      padding: '6px 0',
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: 11,
+                      color: expenseKind === k.value ? 'var(--text-primary)' : 'var(--text-muted)',
+                      cursor: 'pointer',
+                      borderRadius: 2
+                    }}
+                  >
+                    {k.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Tarjeta Emisora */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--text-disabled)', textTransform: 'uppercase' }}>
+                Tarjeta / Origen
+              </label>
+              <select
+                value={cardLabel}
+                onChange={(e) => setCardLabel(e.target.value)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  borderBottom: '1px solid var(--border-subtle)',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 12,
+                  color: 'var(--text-primary)',
+                  padding: '6px 0',
+                  outline: 'none'
+                }}
+              >
+                <option value="Santander Crédito" style={{ background: 'var(--bg-surface)' }}>Santander Crédito</option>
+                <option value="Galicia Visa" style={{ background: 'var(--bg-surface)' }}>Galicia Visa</option>
+                <option value="BBVA Mastercard" style={{ background: 'var(--bg-surface)' }}>BBVA Mastercard</option>
+                <option value="Otra Tarjeta" style={{ background: 'var(--bg-surface)' }}>Otra Tarjeta</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Categoría */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <label style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--text-disabled)', textTransform: 'uppercase' }}>
+              Categoría
+            </label>
+            <select
+              value={categoryId}
+              onChange={(e) => setCategoryId(e.target.value)}
+              style={{
+                background: 'none',
+                border: 'none',
+                borderBottom: '1px solid var(--border-subtle)',
+                fontFamily: 'var(--font-mono)',
+                fontSize: 13,
+                color: 'var(--text-primary)',
+                padding: '6px 0',
+                outline: 'none'
+              }}
+            >
+              <option value="" style={{ background: 'var(--bg-surface)' }}>Sin categoría</option>
+              {filteredCategories.map((c) => (
+                <option key={c.id} value={c.id} style={{ background: 'var(--bg-surface)' }}>
+                  {translateCategoryName(c.name)}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Fecha de Compra */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <label style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--text-disabled)', textTransform: 'uppercase' }}>
+              Fecha de Compra
+            </label>
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              style={{
+                background: 'none',
+                border: 'none',
+                borderBottom: '1px solid var(--border-subtle)',
+                fontFamily: 'var(--font-mono)',
+                fontSize: 13,
+                color: 'var(--text-primary)',
+                padding: '6px 0',
+                outline: 'none'
+              }}
+            />
+          </div>
         </div>
       )}
 
@@ -163,7 +310,7 @@ export default function CommitmentForm({
       {step === 1 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <h3 style={{ fontSize: 13, fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', textTransform: 'uppercase', margin: 0 }}>
-            Paso 2: ¿Cuánto salió?
+            Paso 2: ¿Cuánto salió el total?
           </h3>
           
           <div style={{ display: 'flex', gap: 12, marginBottom: 8 }}>
@@ -306,7 +453,7 @@ export default function CommitmentForm({
       {step === 3 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <h3 style={{ fontSize: 13, fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', textTransform: 'uppercase', margin: 0 }}>
-            Paso 4: ¿Cuándo vence la primera?
+            Paso 4: ¿Cuándo vence la primera cuota?
           </h3>
           <input
             type="date"
@@ -333,13 +480,26 @@ export default function CommitmentForm({
       {step === 4 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           <h3 style={{ fontSize: 13, fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', textTransform: 'uppercase', margin: 0 }}>
-            Paso 5: Confirmar Compromiso
+            Paso 5: Confirmar Compra a Crédito
           </h3>
           
           <div style={{ border: '1px solid var(--border-subtle)', borderRadius: 2, padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div>
               <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--text-disabled)', textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>Detalle</span>
               <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{description}</span>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div>
+                <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--text-disabled)', textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>Tarjeta / Origen</span>
+                <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>{cardLabel}</span>
+              </div>
+              <div>
+                <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--text-disabled)', textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>Categoría</span>
+                <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
+                  {selectedCategoryObj ? translateCategoryName(selectedCategoryObj.name) : 'Sin categoría'}
+                </span>
+              </div>
             </div>
 
             <div>
@@ -350,21 +510,21 @@ export default function CommitmentForm({
             </div>
 
             <div>
-              <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--text-disabled)', textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>Plan de pago</span>
+              <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--text-disabled)', textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>Plan de cuotas</span>
               <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-                {installmentsCount} {parseInt(installmentsCount, 10) === 1 ? 'cuota' : 'cuotas consecutivas'}
+                {installmentsCount} {parseInt(installmentsCount, 10) === 1 ? 'cuota' : 'cuotas consecutivas'} ({formatCurrency((parseFloat(amount) || 0) / (parseInt(installmentsCount, 10) || 1), currency)} c/u)
               </span>
             </div>
 
             <div>
-              <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--text-disabled)', textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>Primer vencimiento</span>
+              <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--text-disabled)', textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>Primer Vencimiento</span>
               <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>{dueDate}</span>
             </div>
           </div>
         </div>
       )}
 
-      {/* Botones de navegación del asistente */}
+      {/* Botones de navegación */}
       <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
         {step > 0 && (
           <button

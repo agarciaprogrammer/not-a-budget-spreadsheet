@@ -14,6 +14,10 @@ export interface Commitment {
   due_date: string
   payment_method: 'debit' | 'credit' | 'cash' | 'transfer'
   status: 'pending' | 'partial' | 'completed'
+  category_id?: string | null
+  expense_kind?: 'variable' | 'fixed' | null
+  card_label?: string | null
+  installments_count?: number
   created_at: string
 }
 
@@ -33,6 +37,10 @@ export type InstallmentWithCommitment = Installment & {
     description: string | null
     currency: CurrencyCode
     payment_method: 'debit' | 'credit' | 'cash' | 'transfer'
+    category_id?: string | null
+    expense_kind?: 'variable' | 'fixed' | null
+    card_label?: string | null
+    date?: string
   }
 }
 
@@ -85,6 +93,9 @@ export class CommitmentService {
         due_date: validatedData.due_date,
         payment_method: validatedData.payment_method,
         status: validatedData.status || 'pending',
+        category_id: validatedData.category_id || null,
+        expense_kind: validatedData.expense_kind || null,
+        card_label: validatedData.card_label || null,
       })
       .select()
       .single()
@@ -188,7 +199,11 @@ export class CommitmentService {
           user_id,
           description,
           currency,
-          payment_method
+          payment_method,
+          category_id,
+          expense_kind,
+          card_label,
+          date
         )
       `)
       .eq('commitments.budget_id', budgetId)
@@ -232,6 +247,34 @@ export class CommitmentService {
     }
 
     return result
+  }
+
+  async getCommitmentDetails(commitmentId: string): Promise<{
+    commitment: Commitment
+    installments: Installment[]
+  }> {
+    const supabase = this.getSupabaseClient()
+
+    const { data: commitment, error: cErr } = await supabase
+      .from('commitments')
+      .select('*')
+      .eq('id', commitmentId)
+      .single()
+
+    if (cErr) throw cErr
+
+    const { data: installments, error: iErr } = await supabase
+      .from('installments')
+      .select('*')
+      .eq('commitment_id', commitmentId)
+      .order('installment_number', { ascending: true })
+
+    if (iErr) throw iErr
+
+    return {
+      commitment: commitment as Commitment,
+      installments: (installments as Installment[]) ?? [],
+    }
   }
 
   async registerPayment(

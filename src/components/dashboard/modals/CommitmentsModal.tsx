@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import CasioModal from './CasioModal'
+import CommitmentDetailModal from './CommitmentDetailModal'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { commitmentService, type Commitment, type InstallmentWithCommitment } from '@/lib/services/commitment.service'
 import { formatCurrency, formatDate } from '@/lib/utils/formatters'
@@ -15,24 +16,15 @@ interface CommitmentsModalProps {
 
 type Tab = 'commitments' | 'installments'
 
-const STATUS_COLOR: Record<string, string> = {
-  pending:   'var(--yellow-warn)',
-  partial:   'var(--casio-blue)',
-  completed: 'var(--green-lcd)',
-}
-
-const STATUS_LABEL: Record<string, string> = {
-  pending:   'Pending',
-  partial:   'Partial',
-  completed: 'Done',
-}
-
 export default function CommitmentsModal({ isOpen, onClose, refreshTrigger, onRefresh }: CommitmentsModalProps) {
   const { user } = useAuth()
   const [tab, setTab] = useState<Tab>('commitments')
   const [commitments, setCommitments] = useState<Commitment[]>([])
   const [installments, setInstallments] = useState<InstallmentWithCommitment[]>([])
   const [loading, setLoading] = useState(true)
+
+  const [selectedCommitmentId, setSelectedCommitmentId] = useState<string | null>(null)
+  const [isDetailOpen, setIsDetailOpen] = useState(false)
 
   const load = useCallback(async () => {
     if (!user || !isOpen) return
@@ -53,18 +45,29 @@ export default function CommitmentsModal({ isOpen, onClose, refreshTrigger, onRe
 
   useEffect(() => { load() }, [load, refreshTrigger])
 
-  const handleDelete = async (id: string) => {
-    if (!user || !confirm('Delete this commitment?')) return
-    try {
-      await commitmentService.deleteCommitment(id, user.id)
-      onRefresh()
-      load()
-    } catch (e) {
-      console.error(e)
-    }
-  }
+  // KPIs
+  const now = new Date()
+  const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
 
-  // Group installments by month
+  let dueThisMonth = 0
+  let totalPending = 0
+  let nextDueDate: string | null = null
+
+  installments.forEach(inst => {
+    if (inst.status !== 'completed') {
+      totalPending += inst.amount
+      if (inst.due_date.startsWith(currentMonthKey)) {
+        dueThisMonth += inst.amount
+      }
+      if (!nextDueDate || inst.due_date < nextDueDate) {
+        nextDueDate = inst.due_date
+      }
+    }
+  })
+
+  const activeCount = commitments.filter(c => c.status !== 'completed').length
+
+  // Group installments by month for Tab 2
   const grouped = (() => {
     const map: Record<string, { label: string; items: InstallmentWithCommitment[]; pending: { ARS: number; USD: number } }> = {}
     installments.forEach(inst => {
@@ -73,7 +76,7 @@ export default function CommitmentsModal({ isOpen, onClose, refreshTrigger, onRe
       if (!map[key]) {
         const d = new Date(Number(year), Number(month) - 1, 1)
         map[key] = {
-          label: d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+          label: d.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }).toUpperCase(),
           items: [],
           pending: { ARS: 0, USD: 0 },
         }
@@ -88,13 +91,57 @@ export default function CommitmentsModal({ isOpen, onClose, refreshTrigger, onRe
   })()
 
   return (
-    <CasioModal isOpen={isOpen} onClose={onClose} title="Commitments & Installments" size="xl">
-      {/* Tab bar */}
-      <div style={{ display: 'flex', gap: 0, marginBottom: 20, borderBottom: '1px solid var(--border-subtle)' }}>
-        {(['commitments', 'installments'] as Tab[]).map(t => (
+    <>
+      <CasioModal isOpen={isOpen} onClose={onClose} title="Centro de Control de Compromisos" size="xl">
+        {/* Top KPI Header Banner */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: 12,
+          marginBottom: 20,
+          padding: 14,
+          background: 'rgba(255, 255, 255, 0.02)',
+          border: '1px solid var(--border-subtle)',
+          borderRadius: 4
+        }}>
+          <div>
+            <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--text-disabled)', textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>
+              A PAGAR ESTE MES
+            </span>
+            <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--yellow-warn)', fontFamily: 'var(--font-mono)' }}>
+              {formatCurrency(dueThisMonth, 'ARS')}
+            </span>
+          </div>
+          <div>
+            <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--text-disabled)', textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>
+              PRÓXIMO VENCIMIENTO
+            </span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--casio-blue)', fontFamily: 'var(--font-mono)' }}>
+              {nextDueDate ? formatDate(nextDueDate) : '—'}
+            </span>
+          </div>
+          <div>
+            <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--text-disabled)', textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>
+              PENDIENTE TOTAL
+            </span>
+            <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
+              {formatCurrency(totalPending, 'ARS')}
+            </span>
+          </div>
+          <div>
+            <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--text-disabled)', textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>
+              COMPRAS ACTIVAS
+            </span>
+            <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
+              {activeCount} {activeCount === 1 ? 'COMPRA' : 'COMPRAS'}
+            </span>
+          </div>
+        </div>
+
+        {/* Tab Bar */}
+        <div style={{ display: 'flex', gap: 0, marginBottom: 20, borderBottom: '1px solid var(--border-subtle)' }}>
           <button
-            key={t}
-            onClick={() => setTab(t)}
+            onClick={() => setTab('commitments')}
             style={{
               padding: '8px 16px',
               fontSize: 11,
@@ -105,101 +152,251 @@ export default function CommitmentsModal({ isOpen, onClose, refreshTrigger, onRe
               background: 'none',
               border: 'none',
               cursor: 'pointer',
-              color: tab === t ? 'var(--casio-blue)' : 'var(--text-muted)',
-              borderBottom: tab === t ? '2px solid var(--casio-blue)' : '2px solid transparent',
+              color: tab === 'commitments' ? 'var(--casio-blue)' : 'var(--text-muted)',
+              borderBottom: tab === 'commitments' ? '2px solid var(--casio-blue)' : '2px solid transparent',
               marginBottom: -1,
               transition: 'color 100ms ease',
             }}
           >
-            {t}
+            COMPRAS ACTIVAS ({commitments.length})
           </button>
-        ))}
-      </div>
 
-      {loading ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {[...Array(4)].map((_, i) => <div key={i} style={{ height: 40, background: 'var(--border-subtle)', borderRadius: 3, opacity: 0.5 - i * 0.1 }} />)}
+          <button
+            onClick={() => setTab('installments')}
+            style={{
+              padding: '8px 16px',
+              fontSize: 11,
+              fontWeight: 600,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              fontFamily: 'var(--font-mono)',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: tab === 'installments' ? 'var(--casio-blue)' : 'var(--text-muted)',
+              borderBottom: tab === 'installments' ? '2px solid var(--casio-blue)' : '2px solid transparent',
+              marginBottom: -1,
+              transition: 'color 100ms ease',
+            }}
+          >
+            PRÓXIMOS VENCIMIENTOS
+          </button>
         </div>
-      ) : tab === 'commitments' ? (
-        commitments.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.1em' }}>
-            NO COMMITMENTS
+
+        {loading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {[...Array(4)].map((_, i) => <div key={i} style={{ height: 50, background: 'var(--border-subtle)', borderRadius: 4, opacity: 0.5 - i * 0.1 }} />)}
           </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-            {/* Headers */}
-            <div style={{ display: 'grid', gridTemplateColumns: '90px 1fr 110px 90px 70px 50px', gap: 8, paddingBottom: 8, borderBottom: '1px solid var(--border-subtle)' }}>
-              {['DATE', 'DESCRIPTION', 'AMOUNT', 'DUE DATE', 'STATUS', ''].map((h, i) => (
-                <div key={i} className="c-label">{h}</div>
-              ))}
+        ) : tab === 'commitments' ? (
+          commitments.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.1em' }}>
+              NO HAY COMPRAS O COMPROMISOS REGISTRADOS
             </div>
-            {commitments.map(c => (
-              <div
-                key={c.id}
-                style={{ display: 'grid', gridTemplateColumns: '90px 1fr 110px 90px 70px 50px', gap: 8, padding: '10px 0', borderBottom: '1px solid var(--border-subtle)', alignItems: 'center' }}
-              >
-                <span style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>{formatDate(c.date)}</span>
-                <span style={{ fontSize: 12, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.description || '—'}</span>
-                <span className="c-value" style={{ fontSize: 12, color: 'var(--text-primary)', fontWeight: 600 }}>{formatCurrency(c.amount, c.currency)}</span>
-                <span style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>{formatDate(c.due_date)}</span>
-                <span style={{ fontSize: 10, color: STATUS_COLOR[c.status], fontFamily: 'var(--font-mono)', fontWeight: 600, letterSpacing: '0.06em' }}>
-                  {STATUS_LABEL[c.status]}
-                </span>
-                <button
-                  onClick={() => handleDelete(c.id)}
-                  style={{ fontSize: 9, color: 'var(--text-disabled)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-mono)', letterSpacing: '0.05em' }}
-                >
-                  DEL
-                </button>
-              </div>
-            ))}
-          </div>
-        )
-      ) : (
-        grouped.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.1em' }}>
-            NO INSTALLMENTS
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            {grouped.map(group => (
-              <div key={group.key}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                  <div className="c-label">{group.label.toUpperCase()}</div>
-                  <div style={{ textAlign: 'right' }}>
-                    {group.pending.ARS > 0 && (
-                      <span className="c-value" style={{ fontSize: 12, color: 'var(--yellow-warn)' }}>
-                        {formatCurrency(group.pending.ARS, 'ARS')} pending
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {commitments.map(c => {
+                const cInsts = installments.filter(i => i.commitment_id === c.id)
+                const paidCount = cInsts.filter(i => i.status === 'completed').length
+                const totalInsts = cInsts.length || c.installments_count || 1
+                const monthlyAmount = cInsts[0]?.amount || (c.amount / totalInsts)
+                const paidAmount = cInsts.filter(i => i.status === 'completed').reduce((sum, i) => sum + i.amount, 0)
+                const remainingAmount = Math.max(0, c.amount - paidAmount)
+                const nextPendingInst = cInsts.find(i => i.status !== 'completed')
+                const progressPct = (paidCount / totalInsts) * 100
+
+                return (
+                  <div
+                    key={c.id}
+                    style={{
+                      border: '1px solid var(--border-subtle)',
+                      borderRadius: 4,
+                      padding: 14,
+                      background: 'rgba(255, 255, 255, 0.015)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 10,
+                      cursor: 'pointer',
+                      transition: 'border-color 150ms ease, background 150ms ease',
+                    }}
+                    className="c-commitment-card"
+                    onClick={() => { setSelectedCommitmentId(c.id); setIsDetailOpen(true) }}
+                  >
+                    {/* Top Row: Title & Badges */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>
+                          {c.description || 'Sin descripción'}
+                        </span>
+                        <span style={{
+                          fontSize: 9,
+                          fontFamily: 'var(--font-mono)',
+                          padding: '2px 6px',
+                          borderRadius: 2,
+                          background: 'rgba(200, 160, 255, 0.12)',
+                          color: '#d8b4fe',
+                          border: '1px solid rgba(200, 160, 255, 0.25)',
+                          fontWeight: 600
+                        }}>
+                          {c.card_label || 'Crédito'}
+                        </span>
+                      </div>
+
+                      <span style={{
+                        fontSize: 9,
+                        fontFamily: 'var(--font-mono)',
+                        padding: '2px 6px',
+                        borderRadius: 2,
+                        background: c.status === 'completed' ? 'rgba(74, 222, 128, 0.12)' : 'rgba(59, 130, 246, 0.12)',
+                        color: c.status === 'completed' ? 'var(--green-lcd)' : 'var(--casio-blue)',
+                        fontWeight: 600,
+                        letterSpacing: '0.04em'
+                      }}>
+                        {c.status === 'completed' ? 'COMPLETADO' : 'ACTIVO'}
                       </span>
-                    )}
-                    {group.pending.ARS === 0 && group.pending.USD === 0 && (
-                      <span style={{ fontSize: 11, color: 'var(--green-lcd)', fontFamily: 'var(--font-mono)' }}>ALL PAID</span>
-                    )}
+                    </div>
+
+                    {/* Middle Row: Amounts & Progress Details */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, alignItems: 'center' }}>
+                      <div>
+                        <span style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', display: 'block' }}>
+                          Monto Total: <strong style={{ color: 'var(--text-primary)' }}>{formatCurrency(c.amount, c.currency)}</strong>
+                        </span>
+                        <span style={{ fontSize: 10, color: 'var(--text-disabled)', fontFamily: 'var(--font-mono)' }}>
+                          Saldo Restante: {formatCurrency(remainingAmount, c.currency)}
+                        </span>
+                      </div>
+
+                      <div style={{ textAlign: 'right' }}>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--casio-blue)', fontFamily: 'var(--font-mono)', display: 'block' }}>
+                          {nextPendingInst 
+                            ? `Cuota ${nextPendingInst.installment_number} de ${totalInsts} · ${formatCurrency(monthlyAmount, c.currency)}/mes`
+                            : `${totalInsts} de ${totalInsts} cuotas pagadas`
+                          }
+                        </span>
+                        {nextPendingInst ? (
+                          <span style={{ fontSize: 10, color: 'var(--yellow-warn)', fontFamily: 'var(--font-mono)' }}>
+                            Próximo pago: {formatDate(nextPendingInst.due_date)}
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: 10, color: 'var(--green-lcd)', fontFamily: 'var(--font-mono)' }}>
+                            Todas las cuotas al día
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Progress Track */}
+                    <div className="c-progress-track" style={{ height: 4, marginTop: 2 }}>
+                      <div
+                        className="c-progress-fill"
+                        style={{
+                          width: `${Math.max(progressPct, c.status === 'completed' ? 100 : 5)}%`,
+                          background: c.status === 'completed' ? 'var(--green-lcd)' : 'var(--casio-blue)'
+                        }}
+                      />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )
+        ) : (
+          grouped.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.1em' }}>
+              NO HAY CUOTAS REGISTRADAS
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              {grouped.map(group => (
+                <div key={group.key} style={{ border: '1px solid var(--border-subtle)', borderRadius: 4, padding: 14, background: 'rgba(255, 255, 255, 0.01)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, borderBottom: '1px solid var(--border-subtle)', paddingBottom: 8 }}>
+                    <div className="c-label" style={{ fontSize: 11, letterSpacing: '0.08em', color: 'var(--text-primary)' }}>{group.label}</div>
+                    <div>
+                      {group.pending.ARS > 0 ? (
+                        <span className="c-value" style={{ fontSize: 12, fontWeight: 700, color: 'var(--yellow-warn)' }}>
+                          {formatCurrency(group.pending.ARS, 'ARS')} pendiente
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: 11, color: 'var(--green-lcd)', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
+                          TODAS LAS CUOTAS PAGADAS
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                    {group.items.map(inst => {
+                      const isPaid = inst.status === 'completed'
+                      return (
+                        <div
+                          key={inst.id}
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            padding: '10px 0',
+                            borderBottom: '1px solid var(--border-subtle)',
+                            cursor: 'pointer',
+                          }}
+                          onClick={() => { setSelectedCommitmentId(inst.commitment_id); setIsDetailOpen(true) }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                            <span style={{
+                              fontSize: 12,
+                              color: isPaid ? 'var(--green-lcd)' : 'var(--yellow-warn)',
+                              fontFamily: 'var(--font-mono)'
+                            }}>
+                              {isPaid ? '●' : '○'}
+                            </span>
+                            <div>
+                              <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>
+                                {inst.commitments?.description || 'Compromiso'}
+                              </div>
+                              <div style={{ fontSize: 10, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', marginTop: 2 }}>
+                                Cuota {inst.installment_number}/{inst.total_installments} · {inst.commitments?.card_label || 'Tarjeta'} · Vence: {formatDate(inst.due_date)}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div style={{ textAlign: 'right' }}>
+                            <div className="c-value" style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
+                              {formatCurrency(inst.amount, inst.commitments?.currency ?? 'ARS')}
+                            </div>
+                            <span style={{
+                              fontSize: 9,
+                              fontFamily: 'var(--font-mono)',
+                              padding: '2px 6px',
+                              borderRadius: 2,
+                              background: isPaid ? 'rgba(74, 222, 128, 0.12)' : 'rgba(251, 191, 36, 0.12)',
+                              color: isPaid ? 'var(--green-lcd)' : 'var(--yellow-warn)',
+                              fontWeight: 600,
+                              letterSpacing: '0.04em',
+                              marginTop: 4,
+                              display: 'inline-block'
+                            }}>
+                              {isPaid ? 'PAGADA' : 'PENDIENTE'}
+                            </span>
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
-                {group.items.map(inst => (
-                  <div key={inst.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--border-subtle)' }}>
-                    <div>
-                      <div style={{ fontSize: 12, color: 'var(--text-primary)' }}>{inst.commitments?.description || 'Commitment'}</div>
-                      <div style={{ fontSize: 10, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', marginTop: 2 }}>
-                        Installment {inst.installment_number}/{inst.total_installments}
-                      </div>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <div className="c-value" style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
-                        {formatCurrency(inst.amount, inst.commitments?.currency ?? 'ARS')}
-                      </div>
-                      <div style={{ fontSize: 9, color: STATUS_COLOR[inst.status], fontFamily: 'var(--font-mono)', letterSpacing: '0.06em', fontWeight: 600, marginTop: 2 }}>
-                        {inst.status === 'completed' ? 'PAID' : 'PENDING'}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ))}
-          </div>
-        )
-      )}
-    </CasioModal>
+              ))}
+            </div>
+          )
+        )}
+      </CasioModal>
+
+      <CommitmentDetailModal
+        commitmentId={selectedCommitmentId}
+        isOpen={isDetailOpen}
+        onClose={() => { setIsDetailOpen(false); setSelectedCommitmentId(null) }}
+        onDeleted={() => {
+          onRefresh()
+          load()
+        }}
+      />
+    </>
   )
 }

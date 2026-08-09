@@ -6,6 +6,8 @@ import { formatDateToYYYYMMDD } from '@/lib/utils/date-utils'
 export function useMonthlyLimit(userId: string | undefined, refreshTrigger?: number) {
   const [limit, setLimit] = useState<number | null>(null)
   const [spent, setSpent] = useState(0)
+  const [debitSpent, setDebitSpent] = useState(0)
+  const [creditSpent, setCreditSpent] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [currentMonth, setCurrentMonth] = useState<{ year: number; month: number }>({ year: 0, month: 0 })
@@ -32,27 +34,21 @@ export function useMonthlyLimit(userId: string | undefined, refreshTrigger?: num
         setLimit(fetchedLimit)
 
         if (fetchedLimit != null) {
-          // Calculate current month's spending
-          const start = new Date(currentYear, currentMonth - 1, 1) // month - 1 because getMonth() returns 0-11
-          const end = new Date()
-          
-          console.log('Monthly limit calculation:', {
-            startDate: formatDateToYYYYMMDD(start),
-            endDate: formatDateToYYYYMMDD(end),
-            limit: fetchedLimit,
-            year: currentYear,
-            month: currentMonth
-          })
-          
+          // Calculate current month's spending window (full month)
+          const start = new Date(currentYear, currentMonth - 1, 1)
+          const lastDay = new Date(currentYear, currentMonth, 0).getDate()
+          const end = new Date(currentYear, currentMonth - 1, lastDay)
+
           const summary = await transactionService.getTransactionSummary(userId, {
             dateRange: {
               startDate: formatDateToYYYYMMDD(start),
               endDate: formatDateToYYYYMMDD(end),
             }
           })
-          
-          console.log('Summary data:', summary)
-          setSpent(summary.totalVariableExpenses)
+
+          setDebitSpent(summary.debitExpenses ?? 0)
+          setCreditSpent(summary.creditExpenses ?? 0)
+          setSpent(summary.totalExpenses ?? 0)
         }
       } catch (err) {
         console.error('Error loading monthly limit data:', err)
@@ -71,22 +67,24 @@ export function useMonthlyLimit(userId: string | undefined, refreshTrigger?: num
     try {
       setLoading(true)
       setError(null)
-      
+
       await budgetService.setMonthlyLimit(userId, newLimit, currentMonth.year, currentMonth.month)
       setLimit(newLimit)
-      
-      // Refresh the spent amount after updating the limit
+
       const start = new Date(currentMonth.year, currentMonth.month - 1, 1)
-      const end = new Date()
-      
+      const lastDay = new Date(currentMonth.year, currentMonth.month, 0).getDate()
+      const end = new Date(currentMonth.year, currentMonth.month - 1, lastDay)
+
       const summary = await transactionService.getTransactionSummary(userId, {
         dateRange: {
           startDate: formatDateToYYYYMMDD(start),
           endDate: formatDateToYYYYMMDD(end),
         }
       })
-      
-      setSpent(summary.totalVariableExpenses)
+
+      setDebitSpent(summary.debitExpenses ?? 0)
+      setCreditSpent(summary.creditExpenses ?? 0)
+      setSpent(summary.totalExpenses ?? 0)
     } catch (err) {
       console.error('Error updating monthly limit:', err)
       setError(err instanceof Error ? err.message : 'Failed to update monthly limit')
@@ -103,6 +101,8 @@ export function useMonthlyLimit(userId: string | undefined, refreshTrigger?: num
   return {
     limit,
     spent,
+    debitSpent,
+    creditSpent,
     remaining,
     percentUsed,
     isOverLimit,
@@ -111,4 +111,4 @@ export function useMonthlyLimit(userId: string | undefined, refreshTrigger?: num
     updateLimit,
     currentMonth,
   }
-} 
+}

@@ -1,17 +1,19 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { useDashboardDate } from '@/components/providers/DashboardDateProvider'
-import { transactionService } from '@/lib/services/transaction.service'
+import { transactionService, type TransactionSummary } from '@/lib/services/transaction.service'
 
 export function useSummaryData(refreshTrigger: number) {
   const { user } = useAuth()
   const { monthRange } = useDashboardDate()
-  const [summaryData, setSummaryData] = useState({
+  const [summaryData, setSummaryData] = useState<TransactionSummary>({
     openingBalance: {
       ARS: 0,
       USD: 0,
     },
     totalIncome: 0,
+    debitExpenses: 0,
+    creditExpenses: 0,
     totalFixedExpenses: 0,
     totalVariableExpenses: 0,
     totalExpenses: 0,

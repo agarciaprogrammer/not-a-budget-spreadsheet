@@ -14,6 +14,7 @@ import { transactionService } from '@/lib/services/transaction.service'
 interface WorkspaceSectionProps {
   refreshTrigger: number
   onAddTransaction: () => void
+  onAddCommitment?: () => void
   onRefresh: () => void
   onOpenNetWorth: () => void
   onOpenCommitments: () => void
@@ -29,6 +30,7 @@ function formatMonthCompact(date: Date): string {
 export default function WorkspaceSection({
   refreshTrigger,
   onAddTransaction,
+  onAddCommitment,
   onRefresh,
   onOpenNetWorth,
   onOpenCommitments,
@@ -43,8 +45,6 @@ export default function WorkspaceSection({
   // Local state for commitments details
   const [commitmentsCount, setCommitmentsCount] = useState<number>(0)
   const [nextCommitmentDate, setNextCommitmentDate] = useState<string | null>(null)
-  const [activeARS, setActiveARS] = useState<number>(0)
-  const [activeUSD, setActiveUSD] = useState<number>(0)
   const [cLoading, setCLoading] = useState(false)
 
   // Local state for previous month balance (to calculate variation)
@@ -76,65 +76,50 @@ export default function WorkspaceSection({
     loadLimit()
   }, [user, selectedMonth, refreshTrigger])
 
-  // Load commitments data
+  // Load installments data for Widget 3 count & next due date
   useEffect(() => {
-    async function loadCommitments() {
+    async function loadInstallments() {
       if (!user) return
       setCLoading(true)
       try {
-        const { data } = await commitmentService.getUserCommitments(user.id, { page: 1, pageSize: 100 })
-        const active = data.filter(c => c.status === 'pending' || c.status === 'partial')
-        
         const selYear = selectedMonth.getFullYear()
         const selMonthNum = selectedMonth.getMonth() + 1
         
-        // Filter commitments belonging to currently selected month
-        const inPeriod = active.filter(c => {
-          if (!c.due_date) return false
-          const [y, m] = c.due_date.split('-').map(Number)
-          return y === selYear && m === selMonthNum
+        const lastDay = new Date(selYear, selMonthNum, 0).getDate()
+        const startDate = `${selYear}-${String(selMonthNum).padStart(2, '0')}-01`
+        const endDate = `${selYear}-${String(selMonthNum).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
+
+        const inPeriod = await commitmentService.getUserInstallments(user.id, {
+          startDate,
+          endDate,
+          status: 'pending'
         })
         
         setCommitmentsCount(inPeriod.length)
-        
-        let sumARS = 0
-        let sumUSD = 0
-        inPeriod.forEach(c => {
-          if (c.currency === 'ARS') {
-            sumARS += c.amount
-          } else if (c.currency === 'USD') {
-            sumUSD += c.amount
-          }
-        })
-        setActiveARS(sumARS)
-        setActiveUSD(sumUSD)
 
         if (inPeriod.length > 0) {
           const sorted = [...inPeriod].sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())
           setNextCommitmentDate(sorted[0].due_date)
         } else {
-          // Find next future commitment
-          const selectedMonthEnd = new Date(selYear, selMonthNum, 0)
-          const future = active.filter(c => {
-            if (!c.due_date) return false
-            const [y, m, d] = c.due_date.split('-').map(Number)
-            const dueDateObj = new Date(y, m - 1, d)
-            return dueDateObj > selectedMonthEnd
+          // Find next future pending installment
+          const nextMonthStart = `${selYear}-${String(selMonthNum + 1).padStart(2, '0')}-01`
+          const future = await commitmentService.getUserInstallments(user.id, {
+            startDate: nextMonthStart,
+            status: 'pending'
           })
           if (future.length > 0) {
-            const sortedFuture = [...future].sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())
-            setNextCommitmentDate(sortedFuture[0].due_date)
+            setNextCommitmentDate(future[0].due_date)
           } else {
             setNextCommitmentDate(null)
           }
         }
       } catch (err) {
-        console.error('Error fetching commitments for widget:', err)
+        console.error('Error fetching installments for widget:', err)
       } finally {
         setCLoading(false)
       }
     }
-    loadCommitments()
+    loadInstallments()
   }, [user, selectedMonth, refreshTrigger])
 
   // Load previous month Net Balance
@@ -172,6 +157,8 @@ export default function WorkspaceSection({
   const netUSD = summaryData.netBalance.USD
   const availableARS = summaryData.availableCapital.ARS
   const availableUSD = summaryData.availableCapital.USD
+  const committedARS = summaryData.committedCapital.ARS
+  const committedUSD = summaryData.committedCapital.USD
   const spendingARS = summaryData.totalVariableExpenses
 
   const percentUsed = limit ? Math.min((spendingARS / limit) * 100, 100) : 0
@@ -363,16 +350,16 @@ export default function WorkspaceSection({
             
             <div className="widget-main-value">
               {loading || cLoading ? '...' : 
-               commitmentsCount === 0 ? formatCurrency(0, 'ARS') :
-               activeARS > 0 ? formatCurrency(activeARS, 'ARS') : 
-               formatCurrency(activeUSD, 'USD')}
+               committedARS === 0 && committedUSD === 0 ? formatCurrency(0, 'ARS') :
+               committedARS > 0 ? formatCurrency(committedARS, 'ARS') : 
+               formatCurrency(committedUSD, 'USD')}
             </div>
             
             <div className="widget-footer-row">
               <div className="widget-sub-value">
                 {cLoading ? '...' : 
-                 commitmentsCount === 0 ? 'Sin compromisos' : 
-                 `${commitmentsCount} pendiente${commitmentsCount === 1 ? '' : 's'}${activeARS > 0 && activeUSD > 0 ? ` (+ ${formatCurrency(activeUSD, 'USD')})` : ''}`}
+                 commitmentsCount === 0 ? 'Sin cuotas pendientes' : 
+                 `${commitmentsCount} pendiente${commitmentsCount === 1 ? '' : 's'}${committedARS > 0 && committedUSD > 0 ? ` (+ ${formatCurrency(committedUSD, 'USD')})` : ''}`}
               </div>
               
               {!cLoading && nextCommitmentDate ? (
@@ -438,6 +425,7 @@ export default function WorkspaceSection({
             <ActivityFeed
               refreshTrigger={refreshTrigger}
               onAddTransaction={onAddTransaction}
+              onAddCommitment={onAddCommitment}
               onRefresh={onRefresh}
             />
           </div>

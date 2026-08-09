@@ -100,6 +100,7 @@ export default function DashboardPage() {
           <WorkspaceSection
             refreshTrigger={refreshTrigger}
             onAddTransaction={() => setIsTransactionModalOpen(true)}
+            onAddCommitment={() => setIsCommitmentModalOpen(true)}
             onRefresh={refresh}
             onOpenNetWorth={() => setActiveModal('networth')}
             onOpenCommitments={() => setActiveModal('commitments')}

@@ -13,7 +13,7 @@ interface MonthlyLimitModalProps {
 }
 
 export default function MonthlyLimitModal({ isOpen, onClose, userId, refreshTrigger }: MonthlyLimitModalProps) {
-  const { limit, spent, remaining, percentUsed, isOverLimit, loading, updateLimit, currentMonth } = useMonthlyLimit(userId, refreshTrigger)
+  const { limit, spent, debitSpent, creditSpent, remaining, percentUsed, isOverLimit, loading, updateLimit, currentMonth } = useMonthlyLimit(userId, refreshTrigger)
   const [newLimit, setNewLimit] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -57,7 +57,7 @@ export default function MonthlyLimitModal({ isOpen, onClose, userId, refreshTrig
                 <span className="c-value" style={{ fontSize: 32, fontWeight: 700, color: barColor }}>
                   {percentUsed.toFixed(0)}%
                 </span>
-                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>of limit used</span>
+                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>of limit consumed</span>
               </div>
 
               <div className="c-progress-track" style={{ height: 6, marginBottom: 20 }}>
@@ -68,10 +68,36 @@ export default function MonthlyLimitModal({ isOpen, onClose, userId, refreshTrig
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-                <StatRow label="Monthly limit" value={formatCurrency(limit, 'ARS')} />
-                <StatRow label="Spent so far" value={formatCurrency(spent, 'ARS')} color={isOverLimit ? 'var(--red-alert)' : 'var(--text-primary)'} />
+                <StatRow label="Monthly Limit" value={formatCurrency(limit, 'ARS')} />
+                
+                {/* Breakdown subsection */}
+                <div style={{
+                  margin: '8px 0',
+                  padding: '10px 12px',
+                  background: 'rgba(255, 255, 255, 0.015)',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: 4,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 6
+                }}>
+                  <div className="c-label" style={{ fontSize: 9, letterSpacing: '0.08em', marginBottom: 2 }}>
+                    CONSUMED THIS MONTH (SPENT)
+                  </div>
+                  <SubStatRow label="· Efectivo" value={formatCurrency(debitSpent, 'ARS')} />
+                  <SubStatRow label="· Crédito" value={formatCurrency(creditSpent, 'ARS')} color="#d8b4fe" />
+                  <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 6, marginTop: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
+                      Total Consumido
+                    </span>
+                    <span className="c-value" style={{ fontSize: 13, fontWeight: 700, color: isOverLimit ? 'var(--red-alert)' : 'var(--text-primary)' }}>
+                      {formatCurrency(spent, 'ARS')}
+                    </span>
+                  </div>
+                </div>
+
                 <StatRow
-                  label={isOverLimit ? 'Over limit' : 'Remaining'}
+                  label={isOverLimit ? 'Over Limit' : 'Remaining Available'}
                   value={formatCurrency(Math.abs(remaining), 'ARS')}
                   color={isOverLimit ? 'var(--red-alert)' : 'var(--green-lcd)'}
                 />
@@ -120,6 +146,15 @@ function StatRow({ label, value, color }: { label: string; value: string; color?
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--border-subtle)' }}>
       <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{label}</span>
       <span className="c-value" style={{ fontSize: 13, fontWeight: 600, color: color ?? 'var(--text-primary)' }}>{value}</span>
+    </div>
+  )
+}
+
+function SubStatRow({ label, value, color }: { label: string; value: string; color?: string }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <span style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>{label}</span>
+      <span className="c-value" style={{ fontSize: 11, fontWeight: 500, color: color ?? 'var(--text-secondary)' }}>{value}</span>
     </div>
   )
 }

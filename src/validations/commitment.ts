@@ -12,6 +12,9 @@ export const commitmentSchema = z.object({
   payment_method: z.enum(['debit', 'credit', 'cash', 'transfer']),
   status: z.enum(['pending', 'partial', 'completed']).optional().default('pending'),
   installments_count: z.number().int().min(1, 'Debe registrar al menos 1 cuota').optional().default(1),
+  category_id: z.string().uuid().optional().nullable(),
+  expense_kind: z.enum(['variable', 'fixed']).optional().nullable(),
+  card_label: z.string().optional().nullable(),
 })
 
 export type CommitmentFormData = z.infer<typeof commitmentSchema>
